@@ -127,6 +127,7 @@ export async function classifyCandidates(host: string, page: PageContext, candid
 
   const uniques = Array.from(byFp.values()).map((l) => l[0]!);
   let error: ErrorCode | undefined;
+  let inputTokens = 0;
 
   if (uniques.length) {
     const client = clientFor(snap.apiKey!);
@@ -139,6 +140,7 @@ export async function classifyCandidates(host: string, page: PageContext, candid
       try {
         const res = await client.systemOne(req);
         await recordSuccess();
+        inputTokens += res.usage?.input_tokens ?? 0;
         await addUsage(res.usage?.input_tokens ?? 0);
         batch.forEach((rep, i) => {
           const ans = res.answers[`c${i}`];
@@ -162,5 +164,5 @@ export async function classifyCandidates(host: string, page: PageContext, candid
   }
 
   await setHostCache(host, cache);
-  return error ? { verdicts, error } : { verdicts };
+  return error ? { verdicts, error, inputTokens } : { verdicts, inputTokens };
 }

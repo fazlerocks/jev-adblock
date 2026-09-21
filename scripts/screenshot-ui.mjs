@@ -37,7 +37,7 @@ popup.on("console", (m) => { if (m.type() === "error") errors.push("popup consol
 // chrome.tabs.query({active, currentWindow}) from an extension page in a tab returns that page itself; patch by pointing the popup at the fixture tab id.
 const tabId = await sw.evaluate(async (url) => (await chrome.tabs.query({ url }))[0].id, `${origin}/ads.html`);
 await popup.addInitScript((tabId) => { const q = chrome.tabs.query.bind(chrome.tabs); chrome.tabs.query = async (info) => info?.active ? [{ id: tabId }] : q(info); }, tabId);
-await popup.setViewportSize({ width: 360, height: 520 });
+await popup.setViewportSize({ width: 400, height: 640 });
 await popup.goto(`chrome-extension://${extId}/popup/popup.html`); await popup.waitForTimeout(800);
 await popup.screenshot({ path: join(OUT, "popup.png") });
 console.log("popup text:", (await popup.innerText("body")).replace(/\s+/g, " ").slice(0, 400));
@@ -45,9 +45,9 @@ console.log("popup text:", (await popup.innerText("body")).replace(/\s+/g, " ").
 const options = await ctx.newPage();
 options.on("pageerror", (e) => errors.push("options: " + e.message));
 options.on("console", (m) => { if (m.type() === "error") errors.push("options console: " + m.text()); });
-await options.setViewportSize({ width: 900, height: 1400 });
+await options.setViewportSize({ width: 1040, height: 1200 });
 await options.goto(`chrome-extension://${extId}/options/options.html`); await options.waitForTimeout(500);
-await options.click("#testKey"); await options.waitForTimeout(800);
+await options.click("#saveKey"); await options.waitForTimeout(800);
 console.log("key status:", await options.innerText("#keyStatus"));
 await options.screenshot({ path: join(OUT, "options.png"), fullPage: true });
 

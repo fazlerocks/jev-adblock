@@ -18,7 +18,7 @@ export async function getTabState(tabId: number): Promise<TabState | undefined> 
 
 export async function resetTabState(tabId: number, host: string): Promise<TabState> {
   const m = await readAll();
-  const s: TabState = { host, hidden: [], analysed: 0, batches: 0, ruleHidden: 0 };
+  const s: TabState = { host, hidden: [], analysed: 0, batches: 0, ruleHidden: 0, pageTokens: 0 };
   m[String(tabId)] = s;
   await writeAll(m);
   return s;
@@ -27,7 +27,8 @@ export async function resetTabState(tabId: number, host: string): Promise<TabSta
 export async function updateTabState(tabId: number, host: string, fn: (s: TabState) => void): Promise<TabState> {
   const m = await readAll();
   let s = m[String(tabId)];
-  if (!s || s.host !== host) s = { host, hidden: [], analysed: 0, batches: 0, ruleHidden: 0 };
+  if (!s || s.host !== host) s = { host, hidden: [], analysed: 0, batches: 0, ruleHidden: 0, pageTokens: 0 };
+  if (s.pageTokens === undefined) s.pageTokens = 0;
   fn(s);
   m[String(tabId)] = s;
   await writeAll(m);

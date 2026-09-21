@@ -5,6 +5,7 @@ export type ContentToBackground =
   | { type: "hidden_report"; items: HiddenItem[]; ruleHidden: number; analysed: number; sensitive?: boolean }
   | { type: "restored"; nids: string[] }
   | { type: "get_status" }
+  | { type: "page_start" }
   | { type: "rule_feedback"; fp: string; sel: string; matched: number; stillAd: boolean | null };
 
 export type PopupToBackground =
@@ -32,6 +33,7 @@ export type AnyMessage = ContentToBackground | PopupToBackground | OptionsToBack
 export interface ClassifyResponse {
   verdicts: Verdict[];
   error?: ErrorCode;
+  inputTokens?: number;
 }
 
 export interface StatusResponse {
@@ -44,6 +46,7 @@ export interface TabStateResponse {
   hidden: HiddenItem[];
   ruleHidden: number;
   analysed: number;
+  pageTokens: number;
   usage: Usage;
   model: ModelId;
   enabled: boolean;

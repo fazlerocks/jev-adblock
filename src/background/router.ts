@@ -7,7 +7,7 @@ import { clearAllCache, deleteCacheEntry } from "./cache";
 import { classifyCandidates, snapshot, statusFor } from "./classify";
 import { getApiKey, getOverrides, getSettings, overrideKey, patchHealth, patchSettings, setOverrides } from "./settings";
 import { applyRuleFeedback, purgeAllSiteRules, purgeSiteRules, removeSiteRuleByFp } from "./siteRules";
-import { getTabState, removeHidden, setHiddenItems } from "./tabState";
+import { getTabState, removeHidden, resetTabState, setHiddenItems, updateTabState } from "./tabState";
 
 type Sender = chrome.runtime.MessageSender;
 
@@ -44,7 +44,13 @@ export async function handleMessage(msg: AnyMessage, sender: Sender): Promise<un
       if (!th) return { verdicts: [], error: "disabled" } satisfies ClassifyResponse;
       const res = await classifyCandidates(th.host, { host: th.host, title: msg.page?.title, lang: msg.page?.lang }, msg.candidates);
       if (res.error) await setBadge(th.tabId, res.error, 0);
+      if (res.inputTokens) await updateTabState(th.tabId, th.host, (s) => void (s.pageTokens += res.inputTokens ?? 0));
       return res;
+    }
+    case "page_start": {
+      const th = tabHost(sender);
+      if (th) await resetTabState(th.tabId, th.host);
+      return undefined;
     }
     case "get_status": {
       const th = tabHost(sender);
@@ -87,6 +93,7 @@ export async function handleMessage(msg: AnyMessage, sender: Sender): Promise<un
         hidden: state?.hidden ?? [],
         ruleHidden: state?.ruleHidden ?? 0,
         analysed: state?.analysed ?? 0,
+        pageTokens: state?.pageTokens ?? 0,
         usage: snap.usage,
         model: snap.settings.model,
         enabled: snap.settings.enabled,

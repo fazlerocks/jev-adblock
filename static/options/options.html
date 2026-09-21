@@ -6,121 +6,191 @@
     <link rel="stylesheet" href="options.css" />
   </head>
   <body>
-    <main>
-      <h1><img src="../icons/48.png" alt="" width="28" height="28" /> Jev Ad Blocker</h1>
-      <p class="lead">
-        An AI-only ad blocker. Instead of filter lists, page elements that look like ads are described in a few
-        structural fields and judged by TypeSafe AI's <strong>Jev</strong> model using <em>your own</em> API key.
-      </p>
-
-      <section class="card">
-        <h2>1. API key</h2>
-        <p>
-          Create a key in the <a href="https://console.typesafe.ai/keys" target="_blank" rel="noopener">TypeSafe console</a>.
-          It is stored only in this browser's local extension storage and is sent only to <code>api.typesafe.ai</code>.
-        </p>
-        <div class="row">
-          <input id="apiKey" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false" />
-          <button id="toggleKey" class="btn" type="button" title="Show / hide">👁</button>
-          <button id="saveKey" class="btn primary" type="button">Save</button>
-          <button id="testKey" class="btn" type="button">Test key</button>
-          <button id="clearKey" class="btn danger" type="button">Remove</button>
+    <div class="shell">
+      <aside class="side">
+        <div class="side-brand">
+          <img src="../icons/48.png" alt="" width="32" height="32" />
+          <div>
+            <div class="side-name">Jev Ad Blocker</div>
+            <div class="side-sub">Settings</div>
+          </div>
         </div>
-        <p id="keyStatus" class="status"></p>
-      </section>
-
-      <section class="card">
-        <h2>2. What leaves your browser</h2>
-        <p>For each element that looks like it might be an ad, the extension sends TypeSafe:</p>
-        <ul>
-          <li>the page's hostname, title and language</li>
-          <li>the element's tag, id, class names, ARIA role/label, size, position and which page region it sits in</li>
-          <li>the hostnames (never full URLs) of links and iframes inside it</li>
-          <li>up to 150 characters of its visible text</li>
-        </ul>
-        <p>
-          Never sent: form values, cookies, full URLs, or page text outside the candidate element. Pages with a password
-          field or a payment iframe are never analysed. Decisions are cached locally so repeat visits send nothing.
-        </p>
-        <label class="check">
-          <input type="checkbox" id="disclosure" />
-          <span>I understand and agree to send these element descriptions to TypeSafe AI using my key.</span>
-        </label>
-      </section>
-
-      <section class="card">
-        <h2>3. Blocking</h2>
-        <div class="grid">
-          <label>Model
-            <select id="model">
-              <option value="jev-latest">jev-latest (recommended)</option>
-              <option value="jev-1.13.0">jev-1.13.0 (pinned)</option>
-              <option value="jev-preview">jev-preview</option>
-            </select>
-          </label>
-          <label>Hide when collapsed
-            <select id="collapseMode">
-              <option value="display">Remove from layout (display: none)</option>
-              <option value="visibility">Keep space, hide contents (visibility: hidden)</option>
-            </select>
-          </label>
+        <nav class="side-nav" id="nav">
+          <a href="#status" class="active"><i data-icon="shieldCheck"></i> Status</a>
+          <a href="#key"><i data-icon="key"></i> API key</a>
+          <a href="#privacy"><i data-icon="lock"></i> Privacy</a>
+          <a href="#blocking"><i data-icon="sliders"></i> Blocking</a>
+          <a href="#sites"><i data-icon="globe"></i> Sites</a>
+          <a href="#corrections"><i data-icon="ban"></i> Corrections</a>
+          <a href="#data"><i data-icon="database"></i> Data</a>
+        </nav>
+        <div class="side-foot">
+          <a href="https://docs.typesafe.ai" target="_blank" rel="noopener">TypeSafe docs <i data-icon="externalLink" data-size="12"></i></a>
         </div>
+      </aside>
 
-        <h3>Thresholds</h3>
-        <p class="hint">Minimum aggregate ad probability required to hide. Higher = fewer false positives.</p>
-        <div class="grid">
-          <label>Display ads <span class="val" id="tDisplayVal"></span>
+      <main class="content">
+        <!-- Status -->
+        <section class="card" id="status">
+          <div class="card-head">
+            <h2>Status</h2>
+            <p>Everything that has to be true before ads get hidden.</p>
+          </div>
+          <ul class="checks">
+            <li id="chkKey"><span class="chk"></span><div><strong>API key saved</strong><span class="chk-sub" id="chkKeySub">Paste a key from the TypeSafe console.</span></div></li>
+            <li id="chkDisclosure"><span class="chk"></span><div><strong>Privacy disclosure accepted</strong><span class="chk-sub" id="chkDisclosureSub">Read what leaves your browser and agree.</span></div></li>
+            <li id="chkEnabled"><span class="chk"></span><div><strong>Blocking enabled</strong><span class="chk-sub" id="chkEnabledSub">Master switch, also in the popup.</span></div></li>
+          </ul>
+          <div class="usage-row">
+            <div><span class="usage-num" id="uTokens">0</span><span class="usage-lbl">tokens sent</span></div>
+            <div><span class="usage-num" id="uCost">$0</span><span class="usage-lbl">estimated cost</span></div>
+            <div><span class="usage-num" id="uRequests">0</span><span class="usage-lbl">requests</span></div>
+            <div><span class="usage-num" id="uToday">0</span><span class="usage-lbl">tokens today</span></div>
+          </div>
+        </section>
+
+        <!-- Key -->
+        <section class="card" id="key">
+          <div class="card-head">
+            <h2>API key</h2>
+            <p>Create a key in the <a href="https://console.typesafe.ai/keys" target="_blank" rel="noopener">TypeSafe console <i data-icon="externalLink" data-size="12"></i></a>. It is stored only in this browser's extension storage and sent only to <code>api.typesafe.ai</code>.</p>
+          </div>
+          <div class="field-row">
+            <div class="input-wrap">
+              <i data-icon="key" class="input-icon"></i>
+              <input id="apiKey" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false" />
+              <button id="toggleKey" class="btn icon inside" type="button" title="Show or hide"><i data-icon="eye"></i></button>
+            </div>
+            <button id="saveKey" class="btn primary" type="button">Save &amp; test</button>
+            <button id="clearKey" class="btn ghost danger" type="button" title="Remove key"><i data-icon="trash"></i></button>
+          </div>
+          <p id="keyStatus" class="status"></p>
+        </section>
+
+        <!-- Privacy -->
+        <section class="card" id="privacy">
+          <div class="card-head">
+            <h2>Privacy</h2>
+            <p>For each element that looks like it might be an ad, the extension sends TypeSafe:</p>
+          </div>
+          <ul class="bullets">
+            <li>the page's hostname, title and language</li>
+            <li>the element's tag, id, class names, ARIA role and label, size, position and page region</li>
+            <li>the hostnames (never full URLs) of links and iframes inside it</li>
+            <li>up to 150 characters of its visible text</li>
+          </ul>
+          <p class="muted">Never sent: form values, cookies, full URLs, or page text outside the candidate element. Pages with a password field or a payment iframe are never analysed. Decisions are cached locally, so repeat visits usually send nothing. No telemetry.</p>
+          <label class="toggle-row">
+            <span class="toggle-text"><strong>I agree to send these element descriptions to TypeSafe AI using my key.</strong></span>
+            <span class="switch"><input type="checkbox" id="disclosure" /><span class="slider"></span></span>
+          </label>
+        </section>
+
+        <!-- Blocking -->
+        <section class="card" id="blocking">
+          <div class="card-head">
+            <h2>Blocking</h2>
+            <p>Thresholds are the minimum aggregate ad probability required to hide. Higher means fewer false positives.</p>
+          </div>
+
+          <div class="range">
+            <div class="range-head"><label for="tDisplay">Display ads</label><span class="val" id="tDisplayVal"></span></div>
             <input type="range" id="tDisplay" min="0.5" max="0.95" step="0.05" />
-          </label>
-          <label>Sponsored / native <span class="val" id="tSponsoredVal"></span>
+          </div>
+          <div class="range">
+            <div class="range-head"><label for="tSponsored">Sponsored and native</label><span class="val" id="tSponsoredVal"></span></div>
             <input type="range" id="tSponsored" min="0.5" max="0.95" step="0.05" />
-          </label>
-          <label>Popups &amp; banners <span class="val" id="tConsentVal"></span>
+          </div>
+          <div class="range">
+            <div class="range-head"><label for="tConsent">Popups and banners</label><span class="val" id="tConsentVal"></span></div>
             <input type="range" id="tConsent" min="0.5" max="0.95" step="0.05" />
+          </div>
+
+          <div class="divider"></div>
+
+          <label class="toggle-row">
+            <span class="toggle-text"><strong>Hide consent and popup overlays</strong><span>Cookie banners, newsletter and paywall prompts. Off by default.</span></span>
+            <span class="switch"><input type="checkbox" id="hideConsent" /><span class="slider"></span></span>
           </label>
-        </div>
+          <label class="toggle-row">
+            <span class="toggle-text"><strong>Hide a site's own promotions</strong><span>Deals, subscribe boxes, app prompts from the site itself.</span></span>
+            <span class="switch"><input type="checkbox" id="hidePromo" /><span class="slider"></span></span>
+          </label>
 
-        <h3>Also hide</h3>
-        <label class="check"><input type="checkbox" id="hideConsent" /> <span>Cookie / consent banners, newsletter and paywall overlays</span></label>
-        <label class="check"><input type="checkbox" id="hidePromo" /> <span>A site's own promotions (deals, subscribe boxes, app prompts)</span></label>
+          <div class="divider"></div>
 
-        <h3>Daily budget</h3>
-        <label>Max input tokens per day
-          <input type="number" id="budget" min="10000" step="10000" />
-          <span class="hint" id="budgetHint"></span>
-        </label>
-      </section>
+          <div class="grid2">
+            <label class="field">
+              <span class="field-label">Model</span>
+              <select id="model">
+                <option value="jev-latest">jev-latest (recommended)</option>
+                <option value="jev-1.13.0">jev-1.13.0 (pinned)</option>
+                <option value="jev-preview">jev-preview</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">When hiding</span>
+              <select id="collapseMode">
+                <option value="display">Collapse the space</option>
+                <option value="visibility">Keep the space blank</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Daily token budget</span>
+              <input type="number" id="budget" min="10000" step="10000" />
+              <span class="field-hint" id="budgetHint"></span>
+            </label>
+          </div>
+        </section>
 
-      <section class="card">
-        <h2>4. Sites</h2>
-        <label>Never analyse these hosts (one per line, <code>*.example.com</code> allowed)
-          <textarea id="never" rows="4" placeholder="mybank.com&#10;*.internal.corp"></textarea>
-        </label>
-        <label>Paused hosts (one per line)
-          <textarea id="paused" rows="3"></textarea>
-        </label>
-      </section>
+        <!-- Sites -->
+        <section class="card" id="sites">
+          <div class="card-head">
+            <h2>Sites</h2>
+            <p>One host per line. <code>*.example.com</code> matches subdomains.</p>
+          </div>
+          <div class="grid2">
+            <label class="field">
+              <span class="field-label">Never analyse</span>
+              <textarea id="never" rows="5" placeholder="mybank.com&#10;*.internal.corp"></textarea>
+              <span class="field-hint">Nothing on these sites is ever described or sent.</span>
+            </label>
+            <label class="field">
+              <span class="field-label">Paused</span>
+              <textarea id="paused" rows="5" placeholder="example.com"></textarea>
+              <span class="field-hint">Also toggled from the popup's "Pause site".</span>
+            </label>
+          </div>
+        </section>
 
-      <section class="card">
-        <h2>5. Your corrections</h2>
-        <p class="hint">Elements you marked "Not an ad". They are never hidden again on that site.</p>
-        <ul id="overrides" class="plain"></ul>
-        <div class="row">
-          <button id="clearOverrides" class="btn danger" type="button">Clear all corrections</button>
-        </div>
-      </section>
+        <!-- Corrections -->
+        <section class="card" id="corrections">
+          <div class="card-head">
+            <h2>Corrections</h2>
+            <p>Elements you marked "Not an ad". They are never hidden again on that site.</p>
+          </div>
+          <ul id="overrides" class="plain"></ul>
+          <div class="actions">
+            <button id="clearOverrides" class="btn ghost danger" type="button"><i data-icon="trash"></i> Clear all corrections</button>
+          </div>
+        </section>
 
-      <section class="card">
-        <h2>6. Maintenance</h2>
-        <div class="row">
-          <button id="clearCache" class="btn" type="button">Clear decision cache</button>
-          <button id="purgeAllRules" class="btn" type="button">Purge all site rules</button>
-        </div>
-        <p id="maintStatus" class="status"></p>
-      </section>
+        <!-- Data -->
+        <section class="card" id="data">
+          <div class="card-head">
+            <h2>Data</h2>
+            <p>Everything lives in this browser's extension storage. Clearing is safe; the next visit simply asks Jev again.</p>
+          </div>
+          <div class="actions">
+            <button id="clearCache" class="btn" type="button"><i data-icon="refresh"></i> Clear decision cache</button>
+            <button id="purgeAllRules" class="btn" type="button"><i data-icon="zap"></i> Purge all site rules</button>
+          </div>
+          <p id="maintStatus" class="status"></p>
+        </section>
+      </main>
+    </div>
 
-      <p id="saved" class="saved hidden">Saved</p>
-    </main>
+    <div id="toast" class="toast hidden"><i data-icon="check" data-size="14"></i> Saved</div>
   </body>
   <script type="module" src="options.js"></script>
 </html>

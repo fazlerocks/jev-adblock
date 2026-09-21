@@ -54,6 +54,7 @@ async function main(): Promise<void> {
     return status;
   };
 
+  void send({ type: "page_start" }).catch(() => undefined);
   await refreshStatus();
 
   const report = () =>
@@ -161,6 +162,7 @@ async function main(): Promise<void> {
     (roots) => scan(roots),
     () => {
       // SPA navigation: new page budget, keep what is hidden.
+      void send({ type: "page_start" }).catch(() => undefined);
       pageCount = 0;
       batches = 0;
       scannedOnce = false;

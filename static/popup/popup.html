@@ -8,8 +8,11 @@
   <body>
     <header class="top">
       <div class="brand">
-        <img src="../icons/32.png" alt="" width="20" height="20" />
-        <span>Jev Ad Blocker</span>
+        <img src="../icons/32.png" alt="" width="24" height="24" />
+        <div>
+          <div class="name">Jev Ad Blocker</div>
+          <div class="sub" id="modelLabel">jev-latest</div>
+        </div>
       </div>
       <label class="switch" title="Enable or disable everywhere">
         <input type="checkbox" id="enabled" />
@@ -17,32 +20,64 @@
       </label>
     </header>
 
-    <section id="banner" class="banner hidden"></section>
+    <section id="notice" class="notice hidden">
+      <span class="notice-icon" id="noticeIcon"></span>
+      <div class="notice-body">
+        <div id="noticeText"></div>
+        <a href="#" id="noticeAction" class="notice-link hidden"></a>
+      </div>
+    </section>
 
     <section class="site">
-      <div class="host" id="host">—</div>
-      <button id="pause" class="btn small">Pause on this site</button>
+      <div class="site-host">
+        <i data-icon="globe" data-size="16"></i>
+        <span id="host">—</span>
+      </div>
+      <button id="pause" class="btn ghost" type="button">
+        <i data-icon="pause" data-size="14"></i>
+        <span id="pauseLabel">Pause site</span>
+      </button>
     </section>
 
     <section class="stats">
-      <div class="stat"><span class="num" id="hiddenCount">0</span><span class="lbl">hidden</span></div>
-      <div class="stat"><span class="num" id="analysedCount">0</span><span class="lbl">analysed</span></div>
-      <div class="stat"><span class="num" id="ruleCount">0</span><span class="lbl">by site rules</span></div>
+      <div class="stat">
+        <div class="stat-num" id="hiddenCount">0</div>
+        <div class="stat-lbl">Hidden</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="analysedCount">0</div>
+        <div class="stat-lbl">Analysed</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="pageCost">$0</div>
+        <div class="stat-lbl">This page</div>
+      </div>
     </section>
 
     <section class="list-wrap">
+      <div class="list-head">
+        <span>Hidden on this page</span>
+        <span class="list-hint">Restore · Not an ad</span>
+      </div>
       <ul id="list" class="list"></ul>
-      <p id="empty" class="empty">Nothing hidden on this page.</p>
+      <div id="empty" class="empty">
+        <i data-icon="shieldCheck" data-size="28"></i>
+        <p>Nothing hidden here</p>
+      </div>
     </section>
 
     <section id="rulesRow" class="rules hidden">
-      <span>Site rules hide elements before the page paints.</span>
-      <button id="purgeRules" class="link">Purge rules for this site</button>
+      <i data-icon="zap" data-size="14"></i>
+      <span><span id="ruleCount">0</span> hidden before paint by site rules</span>
+      <button id="purgeRules" class="link" type="button">Purge</button>
     </section>
 
     <footer class="foot">
       <span id="usage" title="Lifetime input tokens sent to TypeSafe">—</span>
-      <a href="#" id="openOptions">Settings</a>
+      <a href="#" id="openOptions" class="foot-link">
+        <i data-icon="settings" data-size="14"></i>
+        Settings
+      </a>
     </footer>
   </body>
   <script type="module" src="popup.js"></script>

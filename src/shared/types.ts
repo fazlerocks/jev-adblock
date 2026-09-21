@@ -134,6 +134,7 @@ export interface TabState {
   batches: number;
   ruleHidden: number;
   sensitive?: boolean;
+  pageTokens: number;
 }
 
 export interface RuntimeHealth {
