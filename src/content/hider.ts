@@ -53,7 +53,7 @@ export class Hider {
       finalize();
       return;
     }
-    void snapOut(el, { onCancel: (cancel) => (entry.cancelSnap = cancel) }).then(finalize);
+    void snapOut(el, { onCancel: (cancel) => (entry.cancelSnap = cancel), collapse: mode === "display" }).then(finalize);
   }
 
   restore(nid: string): boolean {

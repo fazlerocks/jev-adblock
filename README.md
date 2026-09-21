@@ -80,7 +80,7 @@ Never sent: form values, cookies, full URLs, or page text outside the candidate 
 - **Cache and site rules.** Decisions persist for seven days; repeated positives become pre-paint CSS rules that expire and self-correct.
 - **Corrections.** "Not an ad" restores an element and pins it as never-hide for that site.
 - **Budget and safety rails.** Daily token budget, circuit breaker on API failures, hard never-touch list for payment, auth, captcha and embed iframes.
-- **Snap effect.** Optional dissolve when an ad is removed. Works on cross-site ad iframes too, and respects `prefers-reduced-motion`.
+- **Snap effect.** Optional: the ad turns to ash, crumbles from one corner and blows away as dust on a page-wide wind, then the space closes smoothly. Works on cross-site ad iframes too, and respects `prefers-reduced-motion`.
 - **Per-page cost.** The popup shows tokens and dollars for the current page and lifetime.
 
 <p align="center">
