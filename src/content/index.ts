@@ -36,8 +36,14 @@ async function main(): Promise<void> {
   let scannedOnce = false;
   let sensitive = false;
 
-  // ---- flash prevention: materialised site rules, before first paint ----
-  siteRules = await injectSiteRules(host);
+  // Snap mode wants the ad to be visible so it can be snapped; normal mode hides before first paint.
+  try {
+    const s0 = await chrome.storage.local.get(STORAGE_KEYS.settings);
+    snapEffect = (s0[STORAGE_KEYS.settings] as Partial<Settings> | undefined)?.snapEffect ?? true;
+  } catch {
+    /* default on */
+  }
+  siteRules = snapEffect ? [] : await injectSiteRules(host);
 
   const refreshStatus = async (): Promise<Status> => {
     try {
@@ -90,8 +96,8 @@ async function main(): Promise<void> {
         const item = batch.find((b) => b.c.nid === v.nid);
         if (!item || !v.hide) continue;
         if (!item.el.isConnected) continue;
-        // Cached decisions apply silently; only fresh Jev verdicts get the snap so the page settles fast on repeat visits.
-        hider.hide(v.nid, item.el, v.fp, v.label, summarise(item.c), v.source, collapseMode, snapEffect && v.source === "jev");
+        // With the snap on, every visible removal animates, cached or not. Off: instant hide.
+        hider.hide(v.nid, item.el, v.fp, v.label, summarise(item.c), v.source, collapseMode, snapEffect);
       }
     } catch (e) {
       console.debug("[jev-adblock] classify failed", e);

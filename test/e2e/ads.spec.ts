@@ -100,7 +100,7 @@ async function configure(withKey: boolean) {
       hideConsentPopups: false,
       hideFirstPartyPromo: false,
       collapseMode: "display",
-      snapEffect: true,
+      snapEffect: false,
       dailyTokenBudget: 5_000_000,
       disclosureAccepted: true,
     };

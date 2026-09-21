@@ -22,7 +22,7 @@ await ctx.route("https://api.typesafe.ai/**", async (route) => {
 await ctx.route(/^https:\/\/(safeframe|ads\.|www\.youtube|newassets\.hcaptcha|shop\.|betco)/, (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<body></body>" }));
 let [sw] = ctx.serviceWorkers(); if (!sw) sw = await ctx.waitForEvent("serviceworker");
 const extId = new URL(sw.url()).host;
-await sw.evaluate(async () => chrome.storage.local.set({ apiKey: "sk-demo", settings: { model: "jev-latest", enabled: true, pausedHosts: [], neverAnalyzeHosts: [], thresholds: { display_ad: 0.7, sponsored_native: 0.8, consent_or_popup: 0.85 }, hideConsentPopups: false, hideFirstPartyPromo: false, collapseMode: "display", snapEffect: true, dailyTokenBudget: 5000000, disclosureAccepted: true } }));
+await sw.evaluate(async () => chrome.storage.local.set({ apiKey: "sk-demo", settings: { model: "jev-latest", enabled: true, pausedHosts: [], neverAnalyzeHosts: [], thresholds: { display_ad: 0.7, sponsored_native: 0.8, consent_or_popup: 0.85 }, hideConsentPopups: false, hideFirstPartyPromo: false, collapseMode: "display", snapEffect: false, dailyTokenBudget: 5000000, disclosureAccepted: true } }));
 
 const page = await ctx.newPage();
 page.on("pageerror", (e) => errors.push("fixture: " + e.message));
