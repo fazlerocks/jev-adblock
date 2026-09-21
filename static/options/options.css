@@ -4,7 +4,7 @@
   --fg: #1a1c22;
   --muted: #6b7280;
   --line: #e5e7eb;
-  --accent: #635bff;
+  --accent: #f2481f;
   --danger: #d9534f;
   --ok: #1f8f4e;
 }
@@ -15,7 +15,7 @@
     --fg: #e6e7eb;
     --muted: #9aa0aa;
     --line: #2a2e37;
-    --accent: #8b85ff;
+    --accent: #ff6a45;
     --ok: #4cc38a;
   }
 }

@@ -2,7 +2,7 @@ import type { Status } from "../shared/types";
 
 export async function setBadge(tabId: number, status: Status, count: number): Promise<void> {
   let text = "";
-  let color = "#635bff";
+  let color = "#f2481f";
   switch (status) {
     case "ok":
       text = count > 0 ? String(count) : "";
