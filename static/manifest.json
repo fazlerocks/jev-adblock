@@ -4,14 +4,31 @@
   "version": "0.1.0",
   "description": "AI-only ad blocking powered by TypeSafe AI's Jev model. Bring your own API key.",
   "minimum_chrome_version": "121",
-  "permissions": ["storage", "alarms", "scripting"],
-  "host_permissions": ["https://api.typesafe.ai/*", "<all_urls>"],
-  "background": { "service_worker": "background.js", "type": "module" },
+  "permissions": [
+    "storage",
+    "alarms",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://api.typesafe.ai/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_start",
       "all_frames": false
     }
@@ -19,8 +36,21 @@
   "action": {
     "default_popup": "popup/popup.html",
     "default_title": "Jev Ad Blocker",
-    "default_icon": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" }
+    "default_icon": {
+      "16": "icons/toolbar-16.png",
+      "32": "icons/toolbar-32.png",
+      "48": "icons/toolbar-48.png",
+      "128": "icons/toolbar-128.png"
+    }
   },
-  "options_ui": { "page": "options/options.html", "open_in_tab": true },
-  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" }
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  }
 }
