@@ -20,5 +20,17 @@
     "jsdom": "^26.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fazlerocks/jev-adblock"
+  },
+  "keywords": [
+    "chrome-extension",
+    "ad-blocker",
+    "typesafe",
+    "jev",
+    "manifest-v3"
+  ]
 }
