@@ -39,7 +39,7 @@ export function createObserver(onAdded: (roots: Element[]) => void, onUrlChange:
       for (const n of Array.from(rec.addedNodes)) {
         if (n.nodeType !== Node.ELEMENT_NODE) continue;
         const el = n as Element;
-        if (el.id === "jb-site-rules" || el.hasAttribute("data-jb-hidden")) continue;
+        if (el.id === "jb-site-rules" || el.hasAttribute("data-jb-hidden") || el.hasAttribute("data-jb-snap-canvas")) continue;
         pending.add(el);
       }
     }

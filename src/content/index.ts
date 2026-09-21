@@ -26,6 +26,7 @@ async function main(): Promise<void> {
   let status: Status = "disabled";
   let siteRules: SiteRule[] = [];
   let collapseMode: Settings["collapseMode"] = "display";
+  let snapEffect = true;
   let pageCount = 0;
   let batches = 0;
   let nidSeq = 0;
@@ -47,7 +48,9 @@ async function main(): Promise<void> {
     }
     try {
       const s = await chrome.storage.local.get(STORAGE_KEYS.settings);
-      collapseMode = ((s[STORAGE_KEYS.settings] as Partial<Settings> | undefined)?.collapseMode ?? "display") as Settings["collapseMode"];
+      const st = s[STORAGE_KEYS.settings] as Partial<Settings> | undefined;
+      collapseMode = (st?.collapseMode ?? "display") as Settings["collapseMode"];
+      snapEffect = st?.snapEffect ?? true;
     } catch {
       /* ignore */
     }
@@ -87,7 +90,8 @@ async function main(): Promise<void> {
         const item = batch.find((b) => b.c.nid === v.nid);
         if (!item || !v.hide) continue;
         if (!item.el.isConnected) continue;
-        hider.hide(v.nid, item.el, v.fp, v.label, summarise(item.c), v.source, collapseMode);
+        // Cached decisions apply silently; only fresh Jev verdicts get the snap so the page settles fast on repeat visits.
+        hider.hide(v.nid, item.el, v.fp, v.label, summarise(item.c), v.source, collapseMode, snapEffect && v.source === "jev");
       }
     } catch (e) {
       console.debug("[jev-adblock] classify failed", e);

@@ -192,6 +192,9 @@ async function init(): Promise<void> {
   const hidePromo = $<HTMLInputElement>("hidePromo");
   hidePromo.checked = s.hideFirstPartyPromo;
   hidePromo.onchange = () => void saveSettings({ hideFirstPartyPromo: hidePromo.checked });
+  const snap = $<HTMLInputElement>("snapEffect");
+  snap.checked = s.snapEffect;
+  snap.onchange = () => void saveSettings({ snapEffect: snap.checked });
 
   const budget = $<HTMLInputElement>("budget");
   const budgetHint = $("budgetHint");

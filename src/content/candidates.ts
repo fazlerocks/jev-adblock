@@ -111,7 +111,8 @@ export function isSensitivePage(doc: Document): boolean {
 
 function neverNominate(el: Element, tag: string): boolean {
   if (tag === "html" || tag === "body" || tag === "main" || tag === "article" || tag === "head") return true;
-  if (el.hasAttribute("data-jb-id") || el.hasAttribute("data-jb-hidden")) return true;
+  if (el.hasAttribute("data-jb-id") || el.hasAttribute("data-jb-hidden") || el.hasAttribute("data-jb-snapping")) return true;
+  if (el.hasAttribute("data-jb-snap-canvas")) return true;
   if (el.closest("[data-jb-hidden]")) return true;
   if (tag === "iframe") {
     const h = hostnameOf(el.getAttribute("src"));

@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hideConsentPopups: false,
   hideFirstPartyPromo: false,
   collapseMode: "display",
+  snapEffect: true,
   dailyTokenBudget: 5_000_000,
   disclosureAccepted: false,
 };

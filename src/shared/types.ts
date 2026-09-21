@@ -97,6 +97,8 @@ export interface Settings {
   hideConsentPopups: boolean;
   hideFirstPartyPromo: boolean;
   collapseMode: "display" | "visibility";
+  /** Disintegrate elements with a dust "snap" animation before removing them. */
+  snapEffect: boolean;
   dailyTokenBudget: number;
   disclosureAccepted: boolean;
 }

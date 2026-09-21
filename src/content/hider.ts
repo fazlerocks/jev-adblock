@@ -1,4 +1,5 @@
 import type { Category, HiddenItem, VerdictSource } from "../shared/types";
+import { snapOut } from "./snap";
 
 interface Entry {
   el: Element;
@@ -9,6 +10,8 @@ interface Entry {
   prevDisplay: string;
   prevPriority: string;
   prevVisibility: string;
+  cancelSnap?: () => void;
+  finalized: boolean;
 }
 
 export type CollapseMode = "display" | "visibility";
@@ -16,26 +19,49 @@ export type CollapseMode = "display" | "visibility";
 export class Hider {
   private readonly entries = new Map<string, Entry>();
 
-  hide(nid: string, el: Element, fp: string, label: Category, summary: string, source: VerdictSource, mode: CollapseMode): void {
+  hide(nid: string, el: Element, fp: string, label: Category, summary: string, source: VerdictSource, mode: CollapseMode, snap = false): void {
     if (this.entries.has(nid)) return;
     const h = el as HTMLElement;
-    const prevDisplay = h.style.getPropertyValue("display");
-    const prevPriority = h.style.getPropertyPriority("display");
-    const prevVisibility = h.style.getPropertyValue("visibility");
+    const entry: Entry = {
+      el,
+      fp,
+      label,
+      summary,
+      source,
+      prevDisplay: h.style.getPropertyValue("display"),
+      prevPriority: h.style.getPropertyPriority("display"),
+      prevVisibility: h.style.getPropertyValue("visibility"),
+      finalized: false,
+    };
     el.setAttribute("data-jb-id", nid);
-    if (mode === "visibility") {
-      el.setAttribute("data-jb-hidden", "__collapse");
-      h.style.setProperty("visibility", "hidden", "important");
-    } else {
-      el.setAttribute("data-jb-hidden", label);
-      h.style.setProperty("display", "none", "important");
+    this.entries.set(nid, entry);
+
+    const finalize = () => {
+      if (entry.finalized || !this.entries.has(nid)) return;
+      entry.finalized = true;
+      entry.cancelSnap = undefined;
+      if (mode === "visibility") {
+        el.setAttribute("data-jb-hidden", "__collapse");
+        h.style.setProperty("visibility", "hidden", "important");
+      } else {
+        el.setAttribute("data-jb-hidden", label);
+        h.style.setProperty("display", "none", "important");
+      }
+    };
+
+    if (!snap) {
+      finalize();
+      return;
     }
-    this.entries.set(nid, { el, fp, label, summary, source, prevDisplay, prevPriority, prevVisibility });
+    void snapOut(el, { onCancel: (cancel) => (entry.cancelSnap = cancel) }).then(finalize);
   }
 
   restore(nid: string): boolean {
     const e = this.entries.get(nid);
     if (!e) return false;
+    // Restoring during the animation: stop it and put the element back untouched.
+    this.entries.delete(nid);
+    e.cancelSnap?.();
     const h = e.el as HTMLElement;
     h.style.removeProperty("display");
     if (e.prevDisplay) h.style.setProperty("display", e.prevDisplay, e.prevPriority);
@@ -44,7 +70,6 @@ export class Hider {
     e.el.removeAttribute("data-jb-hidden");
     e.el.removeAttribute("data-jb-id");
     e.el.setAttribute("data-jb-restored", "");
-    this.entries.delete(nid);
     return true;
   }
 
