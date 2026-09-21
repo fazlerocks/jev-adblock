@@ -35,6 +35,7 @@ async function main(): Promise<void> {
   let inflight = 0;
   let scannedOnce = false;
   let sensitive = false;
+  let observer: ReturnType<typeof createObserver>;
 
   // Snap mode wants the ad to be visible so it can be snapped; normal mode hides before first paint.
   try {
@@ -144,7 +145,13 @@ async function main(): Promise<void> {
 
     // When roots are supplied (mutations), scanning the whole document is still cheapest and dedupes via `seen`.
     void roots;
-    const found = findCandidates(document, { measurer: domMeasurer, pageHost: host, seen, limit: MAX_CANDIDATES_PER_PAGE - pageCount });
+    const found = findCandidates(document, {
+      measurer: domMeasurer,
+      pageHost: host,
+      seen,
+      limit: MAX_CANDIDATES_PER_PAGE - pageCount,
+      onShadowRoot: (root) => observer.watchShadowRoot(root),
+    });
     for (const f of found) {
       seen.add(f.el);
       pageCount++;
@@ -168,7 +175,8 @@ async function main(): Promise<void> {
   else scheduleScan();
   window.addEventListener("load", scheduleScan, { once: true });
 
-  const observer = createObserver(
+  // eslint-disable-next-line prefer-const
+  observer = createObserver(
     (roots) => scan(roots),
     () => {
       // SPA navigation: new page budget, keep what is hidden.

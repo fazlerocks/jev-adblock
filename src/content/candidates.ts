@@ -28,6 +28,24 @@ export interface FindOptions {
   seen: WeakSet<Element>;
   limit?: number;
   depth?: number;
+  /** Called for every open shadow root discovered so the caller can watch it for lazy-loaded content. */
+  onShadowRoot?: (root: ShadowRoot) => void;
+}
+
+const MAX_SHADOW_HOSTS = 60;
+
+/** Elements with an open shadow root. Closed roots are invisible to extensions and are skipped by nature. */
+function shadowHosts(doc: Document): Element[] {
+  const out: Element[] = [];
+  const walker = doc.createTreeWalker(doc.documentElement, NodeFilter.SHOW_ELEMENT);
+  let n: Node | null;
+  while ((n = walker.nextNode())) {
+    if ((n as Element).shadowRoot) {
+      out.push(n as Element);
+      if (out.length >= MAX_SHADOW_HOSTS) break;
+    }
+  }
+  return out;
 }
 
 const SIGNAL_PRIORITY: Record<Signal, number> = {
@@ -149,7 +167,7 @@ function cardAncestor(label: Element, m: Measurer): Element | undefined {
   return best;
 }
 
-function scanDocument(doc: Document | Element, opts: FindOptions, out: Map<Element, Set<Signal>>, frameDoc?: Document): void {
+function scanDocument(doc: Document | Element | ShadowRoot, opts: FindOptions, out: Map<Element, Set<Signal>>, frameDoc?: Document): void {
   const m = opts.measurer;
   const add = (el: Element, s: Signal) => {
     let set = out.get(el);
@@ -230,6 +248,29 @@ function scanDocument(doc: Document | Element, opts: FindOptions, out: Map<Eleme
 export function findCandidates(doc: Document, opts: FindOptions): Found[] {
   const raw = new Map<Element, Set<Signal>>();
   scanDocument(doc, opts, raw);
+
+  // Native ad widgets (MGID, Taboola, Outbrain…) increasingly render inside an open shadow root on a bare
+  // host element. Scan each shadow tree and pin whatever it finds onto the host, which is what we hide.
+  for (const host of shadowHosts(doc)) {
+    const root = host.shadowRoot!;
+    opts.onShadowRoot?.(root);
+    if (opts.seen.has(host) || host.closest("[data-jb-hidden]")) continue;
+    const inner = new Map<Element, Set<Signal>>();
+    scanDocument(root, opts, inner);
+    const union = new Set<Signal>();
+    for (const sigs of inner.values()) for (const s of sigs) union.add(s);
+    // The host's own attributes count too (e.g. data-type="_mgwidget").
+    const blob = attrBlob(host);
+    if (STRONG_TOKEN_RE.test(blob)) union.add("ad_token");
+    else if (WEAK_TOKEN_RE.test(blob)) union.add("weak_token");
+    if (!union.size) continue;
+    let set = raw.get(host);
+    if (!set) {
+      set = new Set();
+      raw.set(host, set);
+    }
+    for (const s of union) set.add(s);
+  }
 
   // Same-origin iframes, one level deep.
   if ((opts.depth ?? 0) < 1) {

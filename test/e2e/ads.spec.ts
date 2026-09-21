@@ -135,7 +135,7 @@ test("hides ads and leaves content alone (mock Jev)", async () => {
   await page.goto(`${origin}/ads.html`);
   await settle(page);
   const hidden = await hiddenIds(page);
-  expect(hidden).toEqual(expect.arrayContaining(["ad-inarticle", "sponsored-card", "ad-sidebar", "sticky-bar"]));
+  expect(hidden).toEqual(expect.arrayContaining(["ad-inarticle", "sponsored-card", "ad-sidebar", "sticky-bar", "native-widget"]));
   for (const keep of ["hero", "article", "related", "deals", "comments", "nav", "header", "footer", "video-widget", "captcha-widget", "newsletter-widget", "iframe-youtube", "iframe-captcha"]) {
     expect(hidden, `${keep} must stay visible`).not.toContain(keep);
   }

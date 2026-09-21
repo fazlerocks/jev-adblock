@@ -3,6 +3,8 @@ import { MUTATION_DEBOUNCE_MS } from "../shared/constants";
 export interface ObserverHandle {
   stop(): void;
   start(): void;
+  /** Also watch an open shadow root; a document-level observer does not see mutations inside it. */
+  watchShadowRoot(root: ShadowRoot): void;
 }
 
 /**
@@ -34,7 +36,7 @@ export function createObserver(onAdded: (roots: Element[]) => void, onUrlChange:
     timer = window.setTimeout(flush, MUTATION_DEBOUNCE_MS);
   };
 
-  const mo = new MutationObserver((records) => {
+  const onRecords = (records: MutationRecord[]) => {
     for (const rec of records) {
       for (const n of Array.from(rec.addedNodes)) {
         if (n.nodeType !== Node.ELEMENT_NODE) continue;
@@ -44,7 +46,22 @@ export function createObserver(onAdded: (roots: Element[]) => void, onUrlChange:
       }
     }
     if (pending.size) schedule();
-  });
+  };
+  const mo = new MutationObserver(onRecords);
+  const watchedRoots = new WeakSet<ShadowRoot>();
+  const shadowObservers: MutationObserver[] = [];
+  const watchShadowRoot = (root: ShadowRoot) => {
+    if (watchedRoots.has(root)) return;
+    watchedRoots.add(root);
+    const o = new MutationObserver((recs) => {
+      // Mutations inside a shadow tree: rescan from the host, which is the element we would hide.
+      onRecords(recs);
+      pending.add(root.host);
+      schedule();
+    });
+    o.observe(root, { childList: true, subtree: true });
+    shadowObservers.push(o);
+  };
 
   const checkUrl = () => {
     if (location.href !== lastUrl) schedule();
@@ -78,5 +95,5 @@ export function createObserver(onAdded: (roots: Element[]) => void, onUrlChange:
 
   window.addEventListener("pagehide", stop);
   window.addEventListener("pageshow", start);
-  return { start, stop };
+  return { start, stop, watchShadowRoot };
 }

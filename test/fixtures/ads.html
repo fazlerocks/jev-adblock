@@ -68,6 +68,26 @@
         </section>
       </article>
 
+      <!-- hide: native ad widget rendered inside an open shadow root on a bare host (MGID/Taboola style) -->
+      <div id="native-widget" data-type="_mgwidget" data-widget-id="1730532"></div>
+      <script>
+        (function () {
+          var host = document.getElementById("native-widget");
+          var root = host.attachShadow({ mode: "open" });
+          var cards = [
+            ["HDFC Life", "Cover That Grows Ahead", "https://widgets.mgid.com/c/1"],
+            ["Jointex", "Do Your Joints Hurt? A Simple Home Trick", "https://widgets.mgid.com/c/2"],
+            ["Brainberries", "Why Women Prefer Older Men", "https://widgets.mgid.com/c/3"],
+          ];
+          root.innerHTML =
+            "<style>.mgbox{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:8px 0}.mgline{display:block;text-decoration:none;color:#222}.mcimg{display:block;width:100%;height:120px;background:#c9d6ea}.mcdomain{color:#4a6fa5;font-size:12px}.mgheader{text-align:right;font-size:11px;color:#999}</style>" +
+            "<div class=\"mgheader\"><a href=\"https://www.mgid.com\" rel=\"sponsored nofollow noopener\">m</a></div>" +
+            "<div class=\"mgbox\">" +
+            cards.map(function (c) { return "<a class=\"mgline\" rel=\"sponsored nofollow noopener\" href=\"" + c[2] + "\"><span class=\"mcimg\"></span><span class=\"mcdomain\">" + c[0] + "</span><strong>" + c[1] + "</strong></a>"; }).join("") +
+            "</div>";
+        })();
+      </script>
+
       <section id="comments">
         <h2>Comments</h2>
         <div class="comment"><strong>alex</strong>: Finally some good news.</div>

@@ -96,7 +96,7 @@ export const IAB_SIZES: ReadonlyArray<readonly [number, number, string]> = [
 export const IAB_TOLERANCE = 4;
 
 export const STRONG_TOKEN_RE =
-  /(^|[^a-z0-9])(ad|ads|advert|adverts|advertisement|advertising|adsense|adslot|ad-slot|ad_slot|sponsor|sponsored|sponsorship|dfp|gpt|doubleclick|taboola|outbrain|mgid|revcontent|adsbygoogle)(?![a-z0-9])/i;
+  /(^|[^a-z0-9])(ad|ads|advert|adverts|advertisement|advertising|adsense|adslot|ad-slot|ad_slot|sponsor|sponsored|sponsorship|dfp|gpt|doubleclick|taboola|trc|outbrain|ob-widget|mgid|mgwidget|mgbox|mgline|mgheader|revcontent|zergnet|adblade|contentad|nativeads|native-ad|adsbygoogle)(?![a-z0-9])/i;
 export const WEAK_TOKEN_RE = /(^|[^a-z0-9])(banner|promo|promotion|promoted)(?![a-z0-9])/i;
 export const SPONSORED_TEXT_RE =
   /^\s*(sponsored|promoted|advertisement|advertisements|ad|ads|paid partnership|paid post|paid content|sponsored content|presented by)\s*[:·•\-–—]?\s*$/i;

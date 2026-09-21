@@ -13,6 +13,27 @@ export interface DescribeContext {
 }
 
 const CONTAINER_TAGS = new Set(["main", "article", "aside", "nav", "header", "footer"]);
+const SELECTOR_ATTRS = ["data-type", "data-widget-id", "data-ad-slot", "data-ad-unit", "data-adunit", "data-testid", "data-module", "data-component"];
+
+/** querySelectorAll across the element's light DOM and its open shadow root, if any. */
+export function queryAll(el: Element, selector: string): Element[] {
+  const out = Array.from(el.querySelectorAll(selector));
+  if (el.shadowRoot) out.push(...Array.from(el.shadowRoot.querySelectorAll(selector)));
+  return out;
+}
+
+/** Visible-ish text including an open shadow root (innerText does not cross the shadow boundary). */
+export function textOf(el: Element): string {
+  const light = (el as HTMLElement).innerText ?? el.textContent ?? "";
+  if (!el.shadowRoot) return light;
+  // Skip <style> content that shadow widgets embed.
+  let shadow = "";
+  for (const n of Array.from(el.shadowRoot.childNodes)) {
+    if (n.nodeType === Node.ELEMENT_NODE && (n as Element).tagName === "STYLE") continue;
+    shadow += " " + ((n as HTMLElement).innerText ?? n.textContent ?? "");
+  }
+  return light + " " + shadow;
+}
 const CLOSE_RE = /(close|dismiss|schlie|fermer|cerrar)/i;
 
 export function iabLabel(w: number, h: number): string | undefined {
@@ -54,9 +75,7 @@ function classList(el: Element): string[] {
 }
 
 function hasCloseControl(el: Element): boolean {
-  const btn = el.querySelector('button, [role="button"], a');
-  if (!btn) return false;
-  for (const b of Array.from(el.querySelectorAll('button, [role="button"], a')).slice(0, 12)) {
+  for (const b of queryAll(el, 'button, [role="button"], a').slice(0, 12)) {
     const label = `${b.getAttribute("aria-label") ?? ""} ${b.getAttribute("title") ?? ""} ${b.className ?? ""} ${(b.textContent ?? "").trim().slice(0, 4)}`;
     if (CLOSE_RE.test(label) || /^[×✕✖x]$/i.test((b.textContent ?? "").trim())) return true;
   }
@@ -85,6 +104,13 @@ export function stableSelector(el: Element): string | undefined {
     const s = tryIt(`${tag}.${classes.slice(0, 3).map((c) => CSS.escape(c)).join(".")}`);
     if (s) return s;
   }
+  // Widgets rendered by ad scripts often carry stable data attributes instead of ids/classes.
+  for (const attr of SELECTOR_ATTRS) {
+    const v = el.getAttribute(attr);
+    if (!v || v.length > 40) continue;
+    const s = tryIt(`${tag}[${attr}="${CSS.escape(v)}"]`);
+    if (s) return s;
+  }
   return undefined;
 }
 
@@ -108,7 +134,7 @@ export function describe(el: Element, ctx: DescribeContext): Candidate {
     iframeTitle = cleanText(el.getAttribute("title"), CAPS.iframeTitle);
   } else {
     // A wrapper around an ad iframe inherits the iframe's host: it is the strongest single signal Jev can see.
-    for (const f of Array.from(el.querySelectorAll("iframe[src]")).slice(0, 5)) {
+    for (const f of queryAll(el, "iframe[src]").slice(0, 5)) {
       const h = hostnameOf(f.getAttribute("src"));
       if (h) {
         iframeHost = h;
@@ -121,7 +147,7 @@ export function describe(el: Element, ctx: DescribeContext): Candidate {
   const linkHostSet = new Set<string>();
   let relSponsored = false;
   let linkTextLen = 0;
-  for (const a of Array.from(el.querySelectorAll("a[href]")).slice(0, 60)) {
+  for (const a of queryAll(el, "a[href]").slice(0, 60)) {
     const h = hostnameOf(a.getAttribute("href") ? (a as HTMLAnchorElement).href : null);
     if (h && linkHostSet.size < CAPS.linkHosts) linkHostSet.add(h);
     const rel = a.getAttribute("rel") ?? "";
@@ -135,13 +161,13 @@ export function describe(el: Element, ctx: DescribeContext): Candidate {
     if (el.hasAttribute(attr) || el.parentElement?.hasAttribute(attr)) adTechAttrs.push(attr);
   }
 
-  const rawText = isIframe ? "" : ((el as HTMLElement).innerText ?? el.textContent ?? "");
+  const rawText = isIframe ? "" : textOf(el);
   const text = cleanText(rawText, CAPS.text);
   const totalLen = rawText.trim().length;
   const textLinkRatio = totalLen > 0 ? Math.min(1, linkTextLen / totalLen) : 0;
 
-  const imgCount = Math.min(20, el.querySelectorAll("img, picture, [role='img']").length + (tag === "img" ? 1 : 0));
-  const hasVideo = tag === "video" || !!el.querySelector("video");
+  const imgCount = Math.min(20, queryAll(el, "img, picture, [role='img']").length + (tag === "img" ? 1 : 0));
+  const hasVideo = tag === "video" || queryAll(el, "video").length > 0;
   const container = containerOf(el);
 
   const c: Candidate = {

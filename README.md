@@ -133,6 +133,7 @@ No runtime dependencies. Icons are inlined [Lucide](https://lucide.dev) SVGs.
 - The first visit to a page shows ads for the scan plus Jev latency before they are hidden. Cache hits hide on the first idle pass; site rules hide before paint (unless the snap effect is on, which deliberately lets the ad appear so it can be snapped).
 - In-stream video ads inside a site's own player cannot be removed by hiding elements. That needs network-level blocking, which this project intentionally does not do.
 - Cross-origin iframes are judged from the parent page; ads nested inside them are hidden as a whole or not at all.
+- Native widgets that render inside an **open** shadow root (MGID, Taboola, Outbrain) are scanned and hidden at the host element. Closed shadow roots are not reachable by any extension.
 - Requires the `<all_urls>` host permission to run on every site.
 
 ## Contributing
