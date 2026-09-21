@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Jev Ad Blocker — Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1><img src="../icons/48.png" alt="" width="28" height="28" /> Jev Ad Blocker</h1>
+      <p class="lead">
+        An AI-only ad blocker. Instead of filter lists, page elements that look like ads are described in a few
+        structural fields and judged by TypeSafe AI's <strong>Jev</strong> model using <em>your own</em> API key.
+      </p>
+
+      <section class="card">
+        <h2>1. API key</h2>
+        <p>
+          Create a key in the <a href="https://console.typesafe.ai/keys" target="_blank" rel="noopener">TypeSafe console</a>.
+          It is stored only in this browser's local extension storage and is sent only to <code>api.typesafe.ai</code>.
+        </p>
+        <div class="row">
+          <input id="apiKey" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false" />
+          <button id="toggleKey" class="btn" type="button" title="Show / hide">👁</button>
+          <button id="saveKey" class="btn primary" type="button">Save</button>
+          <button id="testKey" class="btn" type="button">Test key</button>
+          <button id="clearKey" class="btn danger" type="button">Remove</button>
+        </div>
+        <p id="keyStatus" class="status"></p>
+      </section>
+
+      <section class="card">
+        <h2>2. What leaves your browser</h2>
+        <p>For each element that looks like it might be an ad, the extension sends TypeSafe:</p>
+        <ul>
+          <li>the page's hostname, title and language</li>
+          <li>the element's tag, id, class names, ARIA role/label, size, position and which page region it sits in</li>
+          <li>the hostnames (never full URLs) of links and iframes inside it</li>
+          <li>up to 150 characters of its visible text</li>
+        </ul>
+        <p>
+          Never sent: form values, cookies, full URLs, or page text outside the candidate element. Pages with a password
+          field or a payment iframe are never analysed. Decisions are cached locally so repeat visits send nothing.
+        </p>
+        <label class="check">
+          <input type="checkbox" id="disclosure" />
+          <span>I understand and agree to send these element descriptions to TypeSafe AI using my key.</span>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>3. Blocking</h2>
+        <div class="grid">
+          <label>Model
+            <select id="model">
+              <option value="jev-latest">jev-latest (recommended)</option>
+              <option value="jev-1.13.0">jev-1.13.0 (pinned)</option>
+              <option value="jev-preview">jev-preview</option>
+            </select>
+          </label>
+          <label>Hide when collapsed
+            <select id="collapseMode">
+              <option value="display">Remove from layout (display: none)</option>
+              <option value="visibility">Keep space, hide contents (visibility: hidden)</option>
+            </select>
+          </label>
+        </div>
+
+        <h3>Thresholds</h3>
+        <p class="hint">Minimum aggregate ad probability required to hide. Higher = fewer false positives.</p>
+        <div class="grid">
+          <label>Display ads <span class="val" id="tDisplayVal"></span>
+            <input type="range" id="tDisplay" min="0.5" max="0.95" step="0.05" />
+          </label>
+          <label>Sponsored / native <span class="val" id="tSponsoredVal"></span>
+            <input type="range" id="tSponsored" min="0.5" max="0.95" step="0.05" />
+          </label>
+          <label>Popups &amp; banners <span class="val" id="tConsentVal"></span>
+            <input type="range" id="tConsent" min="0.5" max="0.95" step="0.05" />
+          </label>
+        </div>
+
+        <h3>Also hide</h3>
+        <label class="check"><input type="checkbox" id="hideConsent" /> <span>Cookie / consent banners, newsletter and paywall overlays</span></label>
+        <label class="check"><input type="checkbox" id="hidePromo" /> <span>A site's own promotions (deals, subscribe boxes, app prompts)</span></label>
+
+        <h3>Daily budget</h3>
+        <label>Max input tokens per day
+          <input type="number" id="budget" min="10000" step="10000" />
+          <span class="hint" id="budgetHint"></span>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>4. Sites</h2>
+        <label>Never analyse these hosts (one per line, <code>*.example.com</code> allowed)
+          <textarea id="never" rows="4" placeholder="mybank.com&#10;*.internal.corp"></textarea>
+        </label>
+        <label>Paused hosts (one per line)
+          <textarea id="paused" rows="3"></textarea>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>5. Your corrections</h2>
+        <p class="hint">Elements you marked "Not an ad". They are never hidden again on that site.</p>
+        <ul id="overrides" class="plain"></ul>
+        <div class="row">
+          <button id="clearOverrides" class="btn danger" type="button">Clear all corrections</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>6. Maintenance</h2>
+        <div class="row">
+          <button id="clearCache" class="btn" type="button">Clear decision cache</button>
+          <button id="purgeAllRules" class="btn" type="button">Purge all site rules</button>
+        </div>
+        <p id="maintStatus" class="status"></p>
+      </section>
+
+      <p id="saved" class="saved hidden">Saved</p>
+    </main>
+  </body>
+  <script type="module" src="options.js"></script>
+</html>

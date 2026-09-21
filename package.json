@@ -1,0 +1,24 @@
+{
+  "name": "jev-adblock",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-only ad blocker for Chrome powered by TypeSafe AI's Jev model. Bring your own key.",
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild.config.mjs --watch",
+    "build": "node esbuild.config.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "@types/chrome": "^0.0.300",
+    "@types/node": "^24.13.6",
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

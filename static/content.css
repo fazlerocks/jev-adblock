@@ -1,0 +1,7 @@
+/* High-specificity hide rule so site !important declarations cannot override it. */
+html [data-jb-hidden]:not(#\9) {
+  display: none !important;
+}
+html [data-jb-hidden="__collapse"]:not(#\9) {
+  visibility: hidden !important;
+}

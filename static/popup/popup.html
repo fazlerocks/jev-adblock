@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Jev Ad Blocker</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <img src="../icons/32.png" alt="" width="20" height="20" />
+        <span>Jev Ad Blocker</span>
+      </div>
+      <label class="switch" title="Enable or disable everywhere">
+        <input type="checkbox" id="enabled" />
+        <span class="slider"></span>
+      </label>
+    </header>
+
+    <section id="banner" class="banner hidden"></section>
+
+    <section class="site">
+      <div class="host" id="host">—</div>
+      <button id="pause" class="btn small">Pause on this site</button>
+    </section>
+
+    <section class="stats">
+      <div class="stat"><span class="num" id="hiddenCount">0</span><span class="lbl">hidden</span></div>
+      <div class="stat"><span class="num" id="analysedCount">0</span><span class="lbl">analysed</span></div>
+      <div class="stat"><span class="num" id="ruleCount">0</span><span class="lbl">by site rules</span></div>
+    </section>
+
+    <section class="list-wrap">
+      <ul id="list" class="list"></ul>
+      <p id="empty" class="empty">Nothing hidden on this page.</p>
+    </section>
+
+    <section id="rulesRow" class="rules hidden">
+      <span>Site rules hide elements before the page paints.</span>
+      <button id="purgeRules" class="link">Purge rules for this site</button>
+    </section>
+
+    <footer class="foot">
+      <span id="usage" title="Lifetime input tokens sent to TypeSafe">—</span>
+      <a href="#" id="openOptions">Settings</a>
+    </footer>
+  </body>
+  <script type="module" src="popup.js"></script>
+</html>

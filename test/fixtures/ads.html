@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Example News — Markets rally as rates hold</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; color: #222; }
+    header.site-header { height: 64px; display: flex; align-items: center; padding: 0 24px; border-bottom: 1px solid #ddd; }
+    nav.main-nav a { margin-right: 16px; }
+    .hero-banner { height: 260px; background: linear-gradient(90deg,#123,#345); color: #fff; display: flex; align-items: center; padding: 0 40px; font-size: 28px; }
+    .layout { display: grid; grid-template-columns: 1fr 300px; gap: 24px; max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    article p { line-height: 1.6; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin: 16px 0; display: flex; gap: 12px; }
+    .card img { width: 160px; height: 120px; background: #ccc; }
+    .card--promo { background: #fffbe6; }
+    .related-stories { margin-top: 24px; }
+    .deals-carousel { height: 320px; background: #eef; display: flex; align-items: center; justify-content: center; }
+    aside .widget { margin-bottom: 24px; }
+    .sticky-promo-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 90px; background: #222; color: #fff; display: flex; align-items: center; justify-content: center; gap: 16px; z-index: 1000; }
+    footer.site-footer { height: 120px; background: #f4f4f4; margin-top: 200px; padding: 24px; }
+    #comments .comment { border-top: 1px solid #eee; padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <header class="site-header" id="header">
+    <strong>Example News</strong>
+    <nav class="main-nav" id="nav"><a href="/">Home</a><a href="/world">World</a><a href="/business">Business</a><a href="/tech">Tech</a></nav>
+  </header>
+
+  <!-- visible: hero banner is site content, must NOT be hidden despite "banner" token -->
+  <section class="hero-banner" id="hero">Markets rally as central bank holds rates</section>
+
+  <div class="layout">
+    <main>
+      <article id="article">
+        <h1>Markets rally as central bank holds rates</h1>
+        <p>Stocks climbed on Tuesday after the central bank left interest rates unchanged, citing cooling inflation and a resilient labour market. Analysts said the decision was widely expected but the accompanying statement struck a more dovish tone than anticipated.</p>
+
+        <!-- hide: in-article third-party ad iframe, IAB medium rectangle -->
+        <div class="ad-slot" id="ad-inarticle" data-google-query-id="CJ4x">
+          <iframe id="iframe-ad" src="https://safeframe.googlesyndication.com/safeframe/1-0-40/html/container.html" width="300" height="250" title="Advertisement" style="border:0"></iframe>
+        </div>
+
+        <p>The index closed up 1.8 percent, its best day in three months. Bond yields fell as traders trimmed bets on further tightening. Technology shares led the gains, with semiconductor makers among the top performers.</p>
+
+        <!-- hide: sponsored native card with rel=sponsored -->
+        <div class="card card--promo" id="sponsored-card">
+          <img alt="" />
+          <div>
+            <small>Sponsored</small>
+            <h3><a href="https://shop.brandx.com/suv?utm_source=news" rel="nofollow sponsored">Meet the SUV built for everything</a></h3>
+            <p>Bold design, class-leading range. <a href="https://shop.brandx.com/suv" rel="sponsored">Learn more</a></p>
+          </div>
+        </div>
+
+        <p>Economists now expect the bank to remain on hold through the end of the year, with the first cut pencilled in for early next year should inflation continue to ease.</p>
+
+        <!-- visible: related stories is site content even though it uses "promo"-ish styling -->
+        <section class="related-stories" id="related">
+          <h2>More from Business</h2>
+          <div class="card"><img alt="" /><div><h3><a href="/business/mayor">Mayor responds to criticism over transit plan</a></h3><p>Council to vote next week.</p></div></div>
+          <div class="card"><img alt="" /><div><h3><a href="/business/school">School board vote delayed</a></h3><p>Budget shortfall cited.</p></div></div>
+        </section>
+
+        <!-- visible by default: first-party promo (deal carousel) -->
+        <section class="deals-carousel promo-strip" id="deals">
+          <div>Deal of the day: 30% off our spring collection. <a href="/shop">Shop now</a></div>
+        </section>
+      </article>
+
+      <section id="comments">
+        <h2>Comments</h2>
+        <div class="comment"><strong>alex</strong>: Finally some good news.</div>
+        <div class="comment"><strong>sam</strong>: Waiting for the cut.</div>
+      </section>
+    </main>
+
+    <aside id="sidebar">
+      <!-- hide: sidebar display ad, IAB half page from an ad network -->
+      <div class="widget ad-container" id="ad-sidebar">
+        <iframe id="iframe-sidebar" src="https://ads.doubleclick.net/adi/N123/B456;sz=300x600" width="300" height="600" style="border:0"></iframe>
+      </div>
+
+      <!-- visible: functional embed (YouTube) must never be nominated -->
+      <div class="widget" id="video-widget">
+        <iframe id="iframe-youtube" src="https://www.youtube.com/embed/dQw4w9WgXcQ" width="300" height="170" title="YouTube video" style="border:0"></iframe>
+      </div>
+
+      <!-- visible: captcha iframe host is on the never-nominate list (IAB-sized on purpose) -->
+      <div class="widget" id="captcha-widget">
+        <iframe id="iframe-captcha" src="https://newassets.hcaptcha.com/captcha/v1/checkbox.html" width="300" height="250" title="Widget containing checkbox for hCaptcha security challenge" style="border:0"></iframe>
+      </div>
+
+      <div class="widget" id="newsletter-widget">
+        <h4>Morning briefing</h4>
+        <p>Get the day's top stories in your inbox.</p>
+        <a href="/newsletter">Sign up</a>
+      </div>
+    </aside>
+  </div>
+
+  <!-- hide: sticky bottom promo bar from a third party -->
+  <div class="sticky-promo-bar" id="sticky-bar">
+    <span>Sponsored</span>
+    <span>Try BetCo today — 50 free spins.</span>
+    <a href="https://betco.example/join" rel="sponsored">Join now</a>
+    <button aria-label="Close">×</button>
+  </div>
+
+  <footer class="site-footer" id="footer">© Example News · <a href="/about">About</a> · <a href="/privacy">Privacy</a></footer>
+</body>
+</html>
