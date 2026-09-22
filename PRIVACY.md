@@ -11,12 +11,16 @@ For each page element that the extension considers a possible ad, one request ma
 | Field | Example |
 |---|---|
 | Page hostname, title, language | `example-news.com`, `Markets rally as…`, `en` |
-| Element tag, id, class names | `div`, `ad-slot`, `card card--promo` |
+| Element tag and class names | `div`, `card card--promo` |
 | ARIA role and label | `region`, `Advertisement` |
-| Size, position, page region | `300x250`, `static`, `aside` |
-| Hostnames of links and iframes inside it | `outbrain.com`, `safeframe.googlesyndication.com` |
-| Up to 150 characters of visible text | `Sponsored · Meet the SUV built for everything` |
+| Size, standard ad-size name, position, page region | `300x250`, `medium_rectangle`, `static`, `aside` |
+| Hostnames of links and iframes inside it, iframe title | `outbrain.com`, `safeframe.googlesyndication.com` |
+| Whether a link is marked `rel="sponsored"`, share of text inside links, image count | `true`, `0.9`, `1` |
+| Names of ad-tech attributes on it | `data-google-query-id` |
 | Which heuristics flagged it | `third_party_iframe`, `iab_size` |
+| Up to 150 characters of visible text | `Sponsored · Meet the SUV built for everything` |
+
+The element's `id` attribute is used locally for caching but is **not** sent.
 
 ## What is never sent
 
@@ -26,7 +30,7 @@ For each page element that the extension considers a possible ad, one request ma
 - Page text outside the candidate element
 - Your API key, to anyone other than TypeSafe
 
-Pages that contain a password field or a payment iframe are skipped entirely. You can add any host to a never-analyse list in Settings.
+Pages that contain a password field or a payment iframe are skipped entirely, and this is re-checked on every scan so forms that appear after load also stop analysis. Any element that contains something you can type into is never described. You can add any host to a never-analyse list in Settings.
 
 ## What is stored locally
 

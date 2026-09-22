@@ -18,6 +18,7 @@ export interface Decision {
   pSafe: number;
   confidence: number;
   hide: boolean;
+  p?: Record<Category, number>;
 }
 
 function isCategory(x: string): x is Category {
@@ -75,7 +76,13 @@ export function decide(answer: ChoiceAnswer, candidate: Pick<Candidate, "contain
 
   const confidence = Number.isFinite(answer.confidence) ? answer.confidence : 0;
   const hide = pAd >= threshold && pAd - pSafe >= MARGIN_GUARD && confidence >= CONFIDENCE_FLOOR;
-  return { label, pAd, pSafe, confidence, hide };
+  return { label, pAd, pSafe, confidence, hide, p };
+}
+
+/** Re-run the decision for a cached entry with the current settings. Entries from before the probability map was stored keep their original verdict. */
+export function decideCached(entry: CacheEntry, candidate: Pick<Candidate, "container">, settings: Settings): Decision {
+  if (!entry.p) return { label: entry.label, pAd: entry.pAd, pSafe: 1 - entry.pAd, confidence: entry.confidence, hide: entry.hide };
+  return decide({ type: "choice", choice: entry.label, probabilities: entry.p, confidence: entry.confidence }, candidate, settings);
 }
 
 /** Turn a decision into a cache entry with an appropriate TTL, or null when it should not be cached. */
@@ -84,5 +91,5 @@ export function toCacheEntry(d: Decision, now = Date.now()): CacheEntry | null {
   if (d.hide) ttlDays = POSITIVE_TTL_DAYS;
   else if (d.pSafe >= NEGATIVE_CACHE_MIN_SAFE) ttlDays = NEGATIVE_TTL_DAYS;
   else ttlDays = UNCERTAIN_TTL_DAYS;
-  return { label: d.label, pAd: d.pAd, confidence: d.confidence, hide: d.hide, ts: now, hits: 1, ttlDays };
+  return { label: d.label, pAd: d.pAd, confidence: d.confidence, hide: d.hide, ts: now, hits: 1, ttlDays, p: d.p };
 }

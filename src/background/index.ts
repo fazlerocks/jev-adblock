@@ -2,7 +2,7 @@ import { CACHE_GC_ALARM, CACHE_GC_PERIOD_MIN, STORAGE_KEYS } from "../shared/con
 import type { AnyMessage } from "../shared/messages";
 import { gcCache } from "./cache";
 import { handleMessage } from "./router";
-import { patchHealth } from "./settings";
+import { getApiKey, patchHealth } from "./settings";
 import { dropTab } from "./tabState";
 
 chrome.runtime.onMessage.addListener((msg: AnyMessage, sender, sendResponse) => {
@@ -41,6 +41,10 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
 });
 
+// Keep health.hasKey in sync so content scripts can gate pre-paint rules without touching the key.
+void getApiKey().then((k) => patchHealth({ hasKey: !!k }));
+chrome.runtime.onStartup.addListener(() => void getApiKey().then((k) => patchHealth({ hasKey: !!k })));
+
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === CACHE_GC_ALARM) void gcCache();
 });
@@ -52,6 +56,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // Saving a new key clears the "invalid key" flag so the next request can try it.
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes[STORAGE_KEYS.apiKey]) {
-    void patchHealth({ keyInvalid: false, consecutiveFailures: 0, circuitOpenUntil: 0, offline: false, keyUpdatedAt: Date.now() });
+    const v = changes[STORAGE_KEYS.apiKey]!.newValue;
+    void patchHealth({ keyInvalid: false, consecutiveFailures: 0, circuitOpenUntil: 0, offline: false, keyUpdatedAt: Date.now(), hasKey: typeof v === "string" && v.trim().length > 0 });
   }
 });

@@ -39,7 +39,7 @@ export function overrideKey(host: string, fp: string): string {
   return `${host}:${fp}`;
 }
 
-const DEFAULT_HEALTH: RuntimeHealth = { keyInvalid: false, circuitOpenUntil: 0, consecutiveFailures: 0, offline: false, keyUpdatedAt: 0 };
+const DEFAULT_HEALTH: RuntimeHealth = { keyInvalid: false, circuitOpenUntil: 0, consecutiveFailures: 0, offline: false, keyUpdatedAt: 0, hasKey: false };
 
 export async function getHealth(): Promise<RuntimeHealth> {
   const r = await chrome.storage.local.get(STORAGE_KEYS.health);

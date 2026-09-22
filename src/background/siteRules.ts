@@ -1,4 +1,4 @@
-import { SITE_RULE_MAX_MISSES, SITE_RULE_MAX_PER_HOST, SITE_RULE_TTL_DAYS, STORAGE_KEYS } from "../shared/constants";
+import { SITE_RULE_MAX_MATCHES, SITE_RULE_MAX_MISSES, SITE_RULE_MAX_PER_HOST, SITE_RULE_TTL_DAYS, STORAGE_KEYS } from "../shared/constants";
 import type { SiteRule } from "../shared/types";
 
 const DAY = 86_400_000;
@@ -51,7 +51,8 @@ export async function applyRuleFeedback(host: string, sel: string, matched: numb
   const idx = list.findIndex((r) => r.sel === sel);
   if (idx < 0) return;
   const rule = list[idx]!;
-  if (stillAd === false) {
+  if (stillAd === false || matched > SITE_RULE_MAX_MATCHES) {
+    // Re-classified as not an ad, or the selector now matches more than a few elements (site redesign).
     list.splice(idx, 1);
   } else if (matched === 0) {
     rule.misses += 1;

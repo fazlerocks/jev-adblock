@@ -12,12 +12,34 @@ interface Entry {
   prevVisibility: string;
   cancelSnap?: () => void;
   finalized: boolean;
+  /** Set for elements hidden by a learned site rule. */
+  sel?: string;
 }
 
 export type CollapseMode = "display" | "visibility";
 
 export class Hider {
   private readonly entries = new Map<string, Entry>();
+  /** Called when a rule-hidden element is restored so the caller can disable that selector. */
+  onRuleRestored?: (sel: string) => void;
+
+  /** Register an element already hidden by a pre-paint site rule so it appears in the popup and can be restored. */
+  trackRuleHidden(nid: string, el: Element, fp: string, sel: string, summary: string): void {
+    if (this.entries.has(nid)) return;
+    el.setAttribute("data-jb-id", nid);
+    this.entries.set(nid, {
+      el,
+      fp,
+      label: "display_ad",
+      summary,
+      source: "rule",
+      prevDisplay: "",
+      prevPriority: "",
+      prevVisibility: "",
+      finalized: true,
+      sel,
+    });
+  }
 
   hide(nid: string, el: Element, fp: string, label: Category, summary: string, source: VerdictSource, mode: CollapseMode, snap = false): void {
     if (this.entries.has(nid)) return;
@@ -70,6 +92,7 @@ export class Hider {
     e.el.removeAttribute("data-jb-hidden");
     e.el.removeAttribute("data-jb-id");
     e.el.setAttribute("data-jb-restored", "");
+    if (e.sel) this.onRuleRestored?.(e.sel);
     return true;
   }
 

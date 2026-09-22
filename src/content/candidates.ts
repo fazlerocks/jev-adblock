@@ -11,7 +11,7 @@ import {
 } from "../shared/constants";
 import { hostInList, hostnameOf, registrableDomain } from "../shared/sanitize";
 import type { Signal } from "../shared/types";
-import { containerOf } from "./describe";
+import { containerOf, queryAll } from "./describe";
 import type { Measurer } from "./measure";
 
 export interface Found {
@@ -104,6 +104,9 @@ const OVERLAY_QUERY = [
 const LEAF_TEXT_QUERY = "span,small,p,div,a,b,strong,em,i,figcaption,h2,h3,h4,h5,h6,label,cite";
 
 const SENSITIVE_INPUT = 'input[type="password"], input[type="email"], input[autocomplete^="cc-"], input[type="tel"], input[name*="card" i], input[name*="cvv" i]';
+// Anything a person can type into. A candidate that contains one of these is never described, so typed text cannot be sent.
+const TYPEABLE =
+  'textarea, select, input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]), [contenteditable]:not([contenteditable="false"])';
 
 function attrBlob(el: Element): string {
   const parts = [el.id, el.getAttribute("class") ?? ""];
@@ -117,12 +120,34 @@ function matchesIab(w: number, h: number): boolean {
   return IAB_SIZES.some(([iw, ih]) => Math.abs(w - iw) <= IAB_TOLERANCE && Math.abs(h - ih) <= IAB_TOLERANCE);
 }
 
-/** Page-level sensitivity: never analyse pages with password fields or payment iframes. */
+/** Same-origin iframe documents we are allowed to look into (one level). */
+function sameOriginFrameDocs(doc: Document): Document[] {
+  const out: Document[] = [];
+  for (const f of Array.from(doc.querySelectorAll("iframe"))) {
+    try {
+      const d = (f as HTMLIFrameElement).contentDocument;
+      if (d?.body) out.push(d);
+    } catch {
+      /* cross-origin */
+    }
+  }
+  return out;
+}
+
+/**
+ * Page-level sensitivity: never analyse pages with password fields or payment iframes.
+ * Looks into open shadow roots and same-origin iframes, i.e. everywhere the scanner itself looks.
+ * Cheap enough to run on every scan, which matters because login forms often hydrate late.
+ */
 export function isSensitivePage(doc: Document): boolean {
-  if (doc.querySelector('input[type="password"]')) return true;
-  for (const f of Array.from(doc.querySelectorAll("iframe[src]"))) {
-    const h = hostnameOf(f.getAttribute("src"));
-    if (h && hostInList(h, PAYMENT_IFRAME_HOSTS)) return true;
+  const roots: ParentNode[] = [doc, ...sameOriginFrameDocs(doc)];
+  for (const d of [doc, ...sameOriginFrameDocs(doc)]) for (const h of shadowHosts(d)) roots.push(h.shadowRoot!);
+  for (const root of roots) {
+    if (root.querySelector('input[type="password"]')) return true;
+    for (const f of Array.from(root.querySelectorAll("iframe[src]"))) {
+      const h = hostnameOf(f.getAttribute("src"));
+      if (h && hostInList(h, PAYMENT_IFRAME_HOSTS)) return true;
+    }
   }
   return false;
 }
@@ -137,11 +162,10 @@ function neverNominate(el: Element, tag: string): boolean {
     if (h && hostInList(h, NEVER_NOMINATE_HOSTS)) return true;
     return false;
   }
-  if (el.querySelector(SENSITIVE_INPUT)) return true;
-  if (el.querySelector("form input, form select, form textarea")) return true;
-  if (el.matches("form, input, select, textarea, [contenteditable='true'], [contenteditable='']")) return true;
-  if (el.querySelector("[contenteditable='true'], [contenteditable='']")) return true;
-  if (el.matches("video[controls]") || el.querySelector("video[controls]")) return true;
+  if (el.matches("form, " + TYPEABLE)) return true;
+  if (queryAll(el, SENSITIVE_INPUT).length) return true;
+  if (queryAll(el, TYPEABLE).length) return true;
+  if (el.matches("video[controls]") || queryAll(el, "video[controls]").length) return true;
   return false;
 }
 

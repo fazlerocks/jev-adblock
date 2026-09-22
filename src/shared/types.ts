@@ -111,6 +111,8 @@ export interface CacheEntry {
   ts: number;
   hits: number;
   ttlDays: number;
+  /** Full probability map, so the hide decision can be re-evaluated against current settings. */
+  p?: Record<Category, number>;
 }
 
 export type HostCache = Record<string, CacheEntry>;
@@ -146,4 +148,6 @@ export interface RuntimeHealth {
   offline: boolean;
   /** Bumped by the background whenever the API key changes, so content scripts can re-check status without reading the key. */
   keyUpdatedAt: number;
+  /** Whether an API key is saved. Lets content scripts gate pre-paint rules without ever reading the key. */
+  hasKey: boolean;
 }

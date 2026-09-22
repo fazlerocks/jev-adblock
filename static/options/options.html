@@ -75,8 +75,9 @@
           </div>
           <ul class="bullets">
             <li>the page's hostname, title and language</li>
-            <li>the element's tag, id, class names, ARIA role and label, size, position and page region</li>
-            <li>the hostnames (never full URLs) of links and iframes inside it</li>
+            <li>the element's tag, class names, ARIA role and label, size (and the standard ad-size name if it matches one), position and page region</li>
+            <li>the hostnames (never full URLs) of links and iframes inside it, and whether any link is marked <code>rel="sponsored"</code></li>
+            <li>the names of any ad-tech attributes on it, and which of the extension's own heuristics flagged it</li>
             <li>up to 150 characters of its visible text</li>
           </ul>
           <p class="muted">Never sent: form values, cookies, full URLs, or page text outside the candidate element. Pages with a password field or a payment iframe are never analysed. Decisions are cached locally, so repeat visits usually send nothing. No telemetry.</p>

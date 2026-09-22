@@ -1,12 +1,12 @@
 import { CLASSIFY_TIMEOUT_MS, COALESCE_MS, IDLE_TIMEOUT_MS, MAX_BATCHES_PER_PAGE, MAX_CANDIDATES_PER_PAGE, STORAGE_KEYS } from "../shared/constants";
 import type { BackgroundToContent, ClassifyResponse, ContentToBackground, StatusResponse } from "../shared/messages";
-import type { Candidate, Settings, SiteRule, Status } from "../shared/types";
+import type { Candidate, Settings, Status } from "../shared/types";
 import { findCandidates, isSensitivePage } from "./candidates";
 import { describe, summarise } from "./describe";
 import { Hider } from "./hider";
 import { domMeasurer } from "./measure";
 import { createObserver } from "./observer";
-import { auditSiteRules, injectSiteRules } from "./siteRules";
+import { loadSiteRules, readGate, rulesAllowed, SiteRuleStyles } from "./siteRules";
 
 // Guard against double injection (manifest + programmatic injection on install).
 const FLAG = "__jevAdblockLoaded";
@@ -22,9 +22,13 @@ async function main(): Promise<void> {
 
   const hider = new Hider();
   const seen = new WeakSet<Element>();
-  const nidToEl = new Map<string, Element>();
+  const ruleStyles = new SiteRuleStyles(host);
   let status: Status = "disabled";
-  let siteRules: SiteRule[] = [];
+  /**
+   * Local privacy gate. Set whenever a scan finds a password field or payment iframe anywhere we can see.
+   * It is checked on every scan and is never overwritten by the worker's status.
+   */
+  let sensitive = false;
   let collapseMode: Settings["collapseMode"] = "display";
   let snapEffect = true;
   let pageCount = 0;
@@ -32,19 +36,23 @@ async function main(): Promise<void> {
   let nidSeq = 0;
   let queue: { c: Candidate; el: Element }[] = [];
   let coalesceTimer: number | undefined;
-  let inflight = 0;
-  let scannedOnce = false;
-  let sensitive = false;
+  let rulesAudited = false;
   let observer: ReturnType<typeof createObserver>;
 
-  // Snap mode wants the ad to be visible so it can be snapped; normal mode hides before first paint.
-  try {
-    const s0 = await chrome.storage.local.get(STORAGE_KEYS.settings);
-    snapEffect = (s0[STORAGE_KEYS.settings] as Partial<Settings> | undefined)?.snapEffect ?? true;
-  } catch {
-    /* default on */
-  }
-  siteRules = snapEffect ? [] : await injectSiteRules(host);
+  const nextNid = () => `jb${++nidSeq}-${Math.random().toString(36).slice(2, 7)}`;
+
+  // ---- pre-paint site rules, gated on storage alone (no worker hop) --------
+  const applyGate = async () => {
+    const { settings, health } = await readGate();
+    collapseMode = (settings?.collapseMode ?? "display") as Settings["collapseMode"];
+    snapEffect = settings?.snapEffect ?? true;
+    if (rulesAllowed(host, settings, health) && !sensitive) {
+      ruleStyles.apply(await loadSiteRules(host));
+    } else {
+      ruleStyles.clear();
+    }
+  };
+  await applyGate();
 
   const refreshStatus = async (): Promise<Status> => {
     try {
@@ -53,98 +61,84 @@ async function main(): Promise<void> {
     } catch {
       status = "disabled";
     }
-    try {
-      const s = await chrome.storage.local.get(STORAGE_KEYS.settings);
-      const st = s[STORAGE_KEYS.settings] as Partial<Settings> | undefined;
-      collapseMode = (st?.collapseMode ?? "display") as Settings["collapseMode"];
-      snapEffect = st?.snapEffect ?? true;
-    } catch {
-      /* ignore */
-    }
     return status;
   };
 
   void send({ type: "page_start" }).catch(() => undefined);
   await refreshStatus();
 
+  const countRuleHidden = () => hider.list().filter((h) => h.source === "rule").length;
   const report = () =>
     void send({ type: "hidden_report", items: hider.list(), ruleHidden: countRuleHidden(), analysed: pageCount, sensitive }).catch(() => undefined);
 
-  const countRuleHidden = () => document.querySelectorAll('[data-jb-hidden="rule"]').length;
+  hider.onRuleRestored = (sel) => ruleStyles.disable(sel);
 
-  const nextNid = () => `jb${++nidSeq}-${Math.random().toString(36).slice(2, 7)}`;
+  const canScan = () => status === "ok" && !sensitive;
 
+  // ---- classification --------------------------------------------------------
   const flush = async () => {
     coalesceTimer = undefined;
-    if (!queue.length || status !== "ok") {
-      queue = [];
-      return;
-    }
-    if (batches >= MAX_BATCHES_PER_PAGE) {
+    if (!queue.length || !canScan() || batches >= MAX_BATCHES_PER_PAGE) {
       queue = [];
       return;
     }
     const batch = queue;
     queue = [];
     batches++;
-    inflight++;
     try {
       const res = await classify(batch.map((b) => b.c));
-      if (res.error) {
-        status = res.error;
-      }
+      if (res.error) status = res.error;
+      // A page may have become sensitive while the request was in flight; if so, do not act on the answer.
+      if (sensitive) return;
       for (const v of res.verdicts) {
         const item = batch.find((b) => b.c.nid === v.nid);
-        if (!item || !v.hide) continue;
-        if (!item.el.isConnected) continue;
-        // With the snap on, every visible removal animates, cached or not. Off: instant hide.
+        if (!item || !v.hide || !item.el.isConnected) continue;
         hider.hide(v.nid, item.el, v.fp, v.label, summarise(item.c), v.source, collapseMode, snapEffect);
       }
     } catch (e) {
       console.debug("[jev-adblock] classify failed", e);
     } finally {
-      inflight--;
       report();
     }
   };
 
-  const classify = async (candidates: Candidate[]): Promise<ClassifyResponse> => {
+  /** One attempt only. A timeout means the worker is still retrying with backoff; re-sending would bill twice. */
+  const classify = (candidates: Candidate[]): Promise<ClassifyResponse> => {
     const page = { title: document.title, lang: document.documentElement.lang || undefined };
-    const attempt = () =>
-      Promise.race<ClassifyResponse>([
-        send({ type: "classify", candidates, page }) as Promise<ClassifyResponse>,
-        new Promise<ClassifyResponse>((_, rej) => setTimeout(() => rej(new Error("timeout")), CLASSIFY_TIMEOUT_MS)),
-      ]);
-    try {
-      const r = await attempt();
-      if (!r) throw new Error("empty response");
-      return r;
-    } catch {
-      const r = await attempt();
-      return r ?? { verdicts: [] };
+    return Promise.race<ClassifyResponse>([
+      (send({ type: "classify", candidates, page }) as Promise<ClassifyResponse | undefined>).then((r) => r ?? { verdicts: [] }),
+      new Promise<ClassifyResponse>((_, rej) => setTimeout(() => rej(new Error("classify timed out")), CLASSIFY_TIMEOUT_MS)),
+    ]);
+  };
+
+  const auditRules = () => {
+    if (rulesAudited) return;
+    rulesAudited = true;
+    for (const a of ruleStyles.audit()) {
+      void send({ type: "rule_feedback", fp: a.fp, sel: a.sel, matched: a.matched, stillAd: null }).catch(() => undefined);
+      for (const el of a.elements) {
+        seen.add(el);
+        hider.trackRuleHidden(nextNid(), el, a.fp, a.sel, `${a.sel} · hidden before paint`);
+      }
     }
   };
 
-  const scan = (roots?: Element[]) => {
-    if (status !== "ok") return;
+  const scan = () => {
     if (!document.body) return;
-    if (!scannedOnce) {
-      scannedOnce = true;
-      sensitive = isSensitivePage(document);
-      if (sensitive) {
-        status = "sensitive_page";
+    // Privacy gate first, every time: forms hydrate late and modals open on click.
+    if (isSensitivePage(document)) {
+      if (!sensitive) {
+        sensitive = true;
+        queue = [];
+        ruleStyles.clear();
         report();
-        return;
       }
-      // Audit materialised rules now that the DOM exists.
-      for (const a of auditSiteRules(siteRules)) {
-        void send({ type: "rule_feedback", fp: a.fp, sel: a.sel, matched: a.matched, stillAd: null }).catch(() => undefined);
-      }
+      return;
     }
+    if (!canScan()) return;
+    auditRules();
     if (pageCount >= MAX_CANDIDATES_PER_PAGE) return;
 
-    // When roots are supplied (mutations), scanning the whole document is still cheapest and dedupes via `seen`.
-    void roots;
     const found = findCandidates(document, {
       measurer: domMeasurer,
       pageHost: host,
@@ -156,59 +150,51 @@ async function main(): Promise<void> {
       seen.add(f.el);
       pageCount++;
       const nid = nextNid();
-      const c = describe(f.el, { nid, signals: f.signals, measurer: domMeasurer, allowSelector: !f.frameDoc });
-      nidToEl.set(nid, f.el);
-      queue.push({ c, el: f.el });
+      queue.push({ c: describe(f.el, { nid, signals: f.signals, measurer: domMeasurer, allowSelector: !f.frameDoc }), el: f.el });
     }
     if (queue.length && coalesceTimer === undefined) coalesceTimer = window.setTimeout(() => void flush(), COALESCE_MS);
     if (!found.length) report();
   };
 
   const scheduleScan = () => {
-    const run = () => scan();
-    if ("requestIdleCallback" in window) (window as Window).requestIdleCallback(run, { timeout: IDLE_TIMEOUT_MS });
-    else setTimeout(run, 50);
+    if ("requestIdleCallback" in window) (window as Window).requestIdleCallback(() => scan(), { timeout: IDLE_TIMEOUT_MS });
+    else setTimeout(() => scan(), 50);
   };
 
-  // ---- lifecycle -------------------------------------------------------
+  // ---- lifecycle -----------------------------------------------------------
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", scheduleScan, { once: true });
   else scheduleScan();
   window.addEventListener("load", scheduleScan, { once: true });
 
   // eslint-disable-next-line prefer-const
   observer = createObserver(
-    (roots) => scan(roots),
+    () => scan(),
     () => {
-      // SPA navigation: new page budget, keep what is hidden.
+      // SPA navigation: new page budget; the sensitivity gate is re-evaluated on the next scan.
       void send({ type: "page_start" }).catch(() => undefined);
       pageCount = 0;
       batches = 0;
-      scannedOnce = false;
+      rulesAudited = false;
+      sensitive = false;
       void refreshStatus().then(() => scheduleScan());
     },
   );
   observer.start();
 
-  // Re-arm when the key or settings change (e.g. user just pasted a key in options).
+  // Settings or health changed (key saved, toggles flipped, budget hit, ...): re-evaluate the gate and status.
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;
-    if (changes[STORAGE_KEYS.settings] || changes[STORAGE_KEYS.health]) {
-      const wasOk = status === "ok";
-      void refreshStatus().then((s) => {
-        if (s === "ok" && !wasOk) scheduleScan();
-      });
-    }
+    if (!changes[STORAGE_KEYS.settings] && !changes[STORAGE_KEYS.health] && !changes[STORAGE_KEYS.siteRules]) return;
+    const wasOk = canScan();
+    void applyGate().then(refreshStatus).then(() => {
+      if (canScan() && !wasOk) scheduleScan();
+    });
   });
 
   chrome.runtime.onMessage.addListener((msg: BackgroundToContent, _sender, sendResponse) => {
     switch (msg.type) {
       case "restore_element": {
         const ok = hider.restore(msg.nid);
-        if (!ok) {
-          // Rule-hidden element: nothing in registry; try attribute lookup.
-          const el = nidToEl.get(msg.nid);
-          el?.removeAttribute("data-jb-hidden");
-        }
         void send({ type: "restored", nids: [msg.nid] }).catch(() => undefined);
         report();
         sendResponse({ ok });
@@ -229,8 +215,6 @@ async function main(): Promise<void> {
     }
     return false;
   });
-
-  void inflight;
 }
 
 function send(msg: ContentToBackground): Promise<unknown> {

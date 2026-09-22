@@ -67,8 +67,8 @@ npm run build
 For each element that looks like it might be an ad, the extension sends TypeSafe:
 
 - the page hostname, title and language
-- the element's tag, id, class names, ARIA role and label, size, position and page region
-- the hostnames of links and iframes inside it (never full URLs)
+- the element's tag, class names, ARIA role and label, size, position and page region
+- the hostnames of links and iframes inside it (never full URLs), and which heuristics flagged it
 - up to 150 characters of its visible text
 
 Never sent: form values, cookies, full URLs, or page text outside the candidate element. Pages containing a password field or a payment iframe are never analysed. Your API key is stored in the extension's local storage and sent only to `api.typesafe.ai`. There is no telemetry. See [PRIVACY.md](PRIVACY.md).

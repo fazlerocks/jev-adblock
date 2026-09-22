@@ -13,7 +13,7 @@ import type { ClassifyResponse } from "../shared/messages";
 import { hostInList } from "../shared/sanitize";
 import type { Candidate, ErrorCode, RuntimeHealth, Settings, Status, Usage, Verdict } from "../shared/types";
 import { getHostCache, setHostCache } from "./cache";
-import { decide, toCacheEntry } from "./decisions";
+import { decide, decideCached, toCacheEntry } from "./decisions";
 import { getApiKey, getHealth, getOverrides, getSettings, overrideKey, patchHealth } from "./settings";
 import { addSiteRule } from "./siteRules";
 import { addUsage, getUsage } from "./usage";
@@ -116,8 +116,13 @@ export async function classifyCandidates(host: string, page: PageContext, candid
     const e = cache[c.fp];
     if (e && now - e.ts <= e.ttlDays * 86_400_000) {
       e.hits += 1;
-      verdicts.push({ nid: c.nid, fp: c.fp, label: e.label, pAd: e.pAd, confidence: e.confidence, hide: e.hide, source: "cache" });
-      if (e.hide && e.hits >= SITE_RULE_MIN_HITS && c.sel) void addSiteRule(host, { sel: c.sel, fp: c.fp });
+      // Thresholds and category toggles may have changed since this was cached: decide again.
+      const d = decideCached(e, c, snap.settings);
+      e.hide = d.hide;
+      verdicts.push({ nid: c.nid, fp: c.fp, label: d.label, pAd: d.pAd, confidence: d.confidence, hide: d.hide, source: "cache" });
+      // Pre-paint rules are only learned when the snap effect is off; with it on they would never be used
+      // and would land in bulk the day the user switches it off.
+      if (d.hide && e.hits >= SITE_RULE_MIN_HITS && c.sel && !snap.settings.snapEffect) void addSiteRule(host, { sel: c.sel, fp: c.fp });
       continue;
     }
     const list = byFp.get(c.fp);

@@ -1,7 +1,8 @@
-/* High-specificity hide rule so site !important declarations cannot override it. */
-html [data-jb-hidden]:not(#\9) {
+/* High-specificity hide rules so site !important declarations cannot override them. */
+html [data-jb-hidden]:not([data-jb-hidden="__collapse"]):not(#\9) {
   display: none !important;
 }
+/* "Keep the space blank" mode: hide contents but keep the box in the layout. */
 html [data-jb-hidden="__collapse"]:not(#\9) {
   visibility: hidden !important;
 }

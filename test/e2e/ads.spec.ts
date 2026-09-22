@@ -30,7 +30,8 @@ async function fulfilJev(route: Route, counters: { systemone: number }) {
     return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ name: "jev-latest", description: "", release_date: "" }]) });
   }
   counters.systemone++;
-  const body = req.postDataJSON() as { state: { candidates: Record<string, unknown>[] } };
+  const body = req.postDataJSON() as { state: { candidates: Record<string, unknown>[] }; questions: unknown };
+  payloads.push(body);
   const answers: Record<string, unknown> = {};
   body.state.candidates.forEach((entry, i) => {
     const a = mockAnswer(entry);
@@ -48,6 +49,7 @@ let server: Server;
 let origin: string;
 let context: BrowserContext;
 const counters = { systemone: 0 };
+const payloads: { state: unknown; questions: unknown }[] = [];
 
 test.beforeAll(async () => {
   server = createServer((req, res) => {
@@ -105,7 +107,11 @@ async function configure(withKey: boolean) {
       disclosureAccepted: true,
     };
     await chrome.storage.local.clear();
-    await chrome.storage.local.set({ settings, ...(withKey ? { apiKey: "sk-test-key" } : {}) });
+    await chrome.storage.local.set({
+      settings,
+      health: { keyInvalid: false, circuitOpenUntil: 0, consecutiveFailures: 0, offline: false, keyUpdatedAt: 0, hasKey: withKey },
+      ...(withKey ? { apiKey: "sk-test-key" } : {}),
+    });
   }, withKey);
 }
 
@@ -140,7 +146,20 @@ test("hides ads and leaves content alone (mock Jev)", async () => {
     expect(hidden, `${keep} must stay visible`).not.toContain(keep);
   }
   expect(counters.systemone).toBeGreaterThan(0);
-  // Payload hygiene: no full urls, no backticks, text capped.
+  // Payload hygiene: no identity fields, no full URLs, no backticks, text capped.
+  const raw = JSON.stringify(payloads.map((p) => p.state));
+  expect(raw).not.toMatch(/https?:\/\//);
+  expect(raw).not.toContain("`");
+  for (const p of payloads) {
+    for (const c of (p.state as { candidates: Record<string, unknown>[] }).candidates) {
+      expect(c).not.toHaveProperty("id");
+      expect(c).not.toHaveProperty("nid");
+      expect(c).not.toHaveProperty("fp");
+      expect(c).not.toHaveProperty("sel");
+      if (typeof c.text === "string") expect(c.text.length).toBeLessThanOrEqual(150);
+      for (const h of (c.link_hosts as string[] | undefined) ?? []) expect(h).not.toContain("/");
+    }
+  }
   await page.close();
 });
 
@@ -208,4 +227,77 @@ test("'not an ad' override restores and persists", async () => {
   await settle(again);
   expect(await hiddenIds(again)).not.toContain("sponsored-card");
   await again.close();
+});
+
+test("a password field that appears after load stops all analysis", async () => {
+  await configure(true);
+  const page = await context.newPage();
+  await page.goto(`${origin}/ads.html`);
+  await settle(page);
+  // Add a login form late, then add a brand-new ad slot. Nothing about the new slot may be sent.
+  counters.systemone = 0;
+  await page.evaluate(() => {
+    const f = document.createElement("form");
+    f.innerHTML = '<input type="password" name="pw" />';
+    document.body.appendChild(f);
+  });
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => {
+    const d = document.createElement("div");
+    d.id = "late-ad";
+    d.className = "ad-slot";
+    d.innerHTML = '<iframe src="https://ads.doubleclick.net/late" width="300" height="250" style="border:0"></iframe>';
+    document.querySelector("main")!.appendChild(d);
+  });
+  await page.waitForTimeout(2500);
+  expect(counters.systemone).toBe(0);
+  expect(await hiddenIds(page)).not.toContain("late-ad");
+  await page.close();
+});
+
+test("turning the extension off removes learned site rules from the page", async () => {
+  await configure(true);
+  const sw = await serviceWorker();
+  await sw.evaluate(async (host) => {
+    const settings = (await chrome.storage.local.get("settings")).settings as Record<string, unknown>;
+    await chrome.storage.local.set({
+      settings: { ...settings, snapEffect: false },
+      health: { keyInvalid: false, circuitOpenUntil: 0, consecutiveFailures: 0, offline: false, keyUpdatedAt: 0, hasKey: true },
+      siteRules: { [host]: [{ sel: "#sponsored-card", fp: "f-card", ts: Date.now(), misses: 0 }] },
+    });
+  }, new URL(origin).hostname);
+  const page = await context.newPage();
+  await page.goto(`${origin}/ads.html`);
+  await settle(page);
+  expect(await page.evaluate(() => getComputedStyle(document.getElementById("sponsored-card")!).display)).toBe("none");
+  // Global off: the pre-paint stylesheet must go away without a reload.
+  await sw.evaluate(async () => {
+    const settings = (await chrome.storage.local.get("settings")).settings as Record<string, unknown>;
+    await chrome.storage.local.set({ settings: { ...settings, enabled: false } });
+  });
+  await page.waitForTimeout(600);
+  expect(await page.evaluate(() => document.getElementById("jb-site-rules"))).toBeNull();
+  expect(await page.evaluate(() => getComputedStyle(document.getElementById("sponsored-card")!).display)).not.toBe("none");
+  await page.close();
+});
+
+test("'keep the space blank' mode hides contents but keeps the box", async () => {
+  await configure(true);
+  const sw = await serviceWorker();
+  await sw.evaluate(async () => {
+    const settings = (await chrome.storage.local.get("settings")).settings as Record<string, unknown>;
+    await chrome.storage.local.set({ settings: { ...settings, collapseMode: "visibility" } });
+  });
+  const page = await context.newPage();
+  await page.goto(`${origin}/ads.html`);
+  await settle(page);
+  const cs = await page.evaluate(() => {
+    const el = document.getElementById("ad-sidebar")!;
+    const s = getComputedStyle(el);
+    return { display: s.display, visibility: s.visibility, height: el.getBoundingClientRect().height };
+  });
+  expect(cs.display).not.toBe("none");
+  expect(cs.visibility).toBe("hidden");
+  expect(cs.height).toBeGreaterThan(100);
+  await page.close();
 });

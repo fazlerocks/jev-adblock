@@ -49,7 +49,7 @@ export const MAX_INFLIGHT_PER_TAB = 3;
 export const COALESCE_MS = 150;
 export const MUTATION_DEBOUNCE_MS = 750;
 export const IDLE_TIMEOUT_MS = 1000;
-export const CLASSIFY_TIMEOUT_MS = 10_000;
+export const CLASSIFY_TIMEOUT_MS = 30_000;
 
 // Cache
 export const CACHE_MAX_TOTAL = 5000;
@@ -175,5 +175,7 @@ export const PAYMENT_IFRAME_HOSTS = [
   "checkout.com",
   "squareup.com",
   "klarna.com",
+  "afterpay.com",
   "razorpay.com",
+  "braintree-api.com",
 ];
