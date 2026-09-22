@@ -2,7 +2,7 @@
   "name": "jev-adblock",
   "version": "0.1.0",
   "private": true,
-  "description": "AI-only ad blocker for Chrome powered by TypeSafe AI's Jev model. Bring your own key.",
+  "description": "Open-source AI ad blocker for Chrome. No filter lists: TypeSafe AI's Jev model decides what is an ad. Bring your own key.",
   "type": "module",
   "scripts": {
     "dev": "node esbuild.config.mjs --watch",
@@ -29,8 +29,14 @@
   "keywords": [
     "chrome-extension",
     "ad-blocker",
-    "typesafe",
+    "adblock",
+    "ai-ad-blocker",
     "jev",
-    "manifest-v3"
+    "typesafe",
+    "typesafe-ai",
+    "jev-example",
+    "manifest-v3",
+    "open-source",
+    "privacy"
   ]
 }

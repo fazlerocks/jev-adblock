@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Jev Ad Blocker",
   "version": "0.1.0",
-  "description": "AI-only ad blocking powered by TypeSafe AI's Jev model. Bring your own API key.",
+  "description": "AI ad blocker with no filter lists. TypeSafe AI's Jev model decides what is an ad. Bring your own key.",
   "minimum_chrome_version": "121",
   "permissions": [
     "storage",
