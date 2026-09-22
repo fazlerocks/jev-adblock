@@ -19,7 +19,7 @@ await ctx.route("https://api.typesafe.ai/**", async (route) => {
   body.state.candidates.forEach((c, i) => { answers[`c${i}`] = { type: "choice", choice: "display_ad", probabilities: { display_ad: 0.95, site_content: 0.05 }, confidence: 0.95 }; });
   await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ model: "jev", answers, usage: { input_tokens: 10, output_tokens: 0 } }) });
 });
-await ctx.route(/^https:\/\/(safeframe|ads\.|www\.youtube|newassets\.hcaptcha|shop\.|betco)/, (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<body></body>" }));
+await ctx.route(/^https:\/\/(safeframe|ads\.|www\.youtube|newassets\.hcaptcha|js\.stripe|shop\.|betco)/, (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<body></body>" }));
 let [sw] = ctx.serviceWorkers(); if (!sw) sw = await ctx.waitForEvent("serviceworker");
 sw.on("console", (m) => console.log("SW:", m.text()));
 await sw.evaluate(async () => { await chrome.storage.local.set({ apiKey: "sk-test", settings: { model: "jev-latest", enabled: true, pausedHosts: [], neverAnalyzeHosts: [], thresholds: { display_ad: 0.7, sponsored_native: 0.8, consent_or_popup: 0.85 }, hideConsentPopups: false, hideFirstPartyPromo: false, collapseMode: "display", snapEffect: false, dailyTokenBudget: 5000000, disclosureAccepted: true } }); });

@@ -19,7 +19,7 @@ await ctx.route("https://api.typesafe.ai/**", async (route) => {
   body.state.candidates.forEach((c, i) => { const ad = /googlesyndication|doubleclick/.test(c.iframe_host ?? "") || c.rel_sponsored; answers[`c${i}`] = { type: "choice", choice: ad ? "display_ad" : "site_content", probabilities: ad ? { display_ad: 0.94, site_content: 0.06 } : { site_content: 0.9, site_ui: 0.1 }, confidence: 0.92 }; });
   await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ model: "jev-1.13.0", answers, usage: { input_tokens: 9800, output_tokens: 0 } }) });
 });
-await ctx.route(/^https:\/\/(safeframe|ads\.|www\.youtube|newassets\.hcaptcha|shop\.|betco)/, (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<body></body>" }));
+await ctx.route(/^https:\/\/(safeframe|ads\.|www\.youtube|newassets\.hcaptcha|js\.stripe|shop\.|betco)/, (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<body></body>" }));
 let [sw] = ctx.serviceWorkers(); if (!sw) sw = await ctx.waitForEvent("serviceworker");
 const extId = new URL(sw.url()).host;
 await sw.evaluate(async () => chrome.storage.local.set({ apiKey: "sk-demo", settings: { model: "jev-latest", enabled: true, pausedHosts: [], neverAnalyzeHosts: [], thresholds: { display_ad: 0.7, sponsored_native: 0.8, consent_or_popup: 0.85 }, hideConsentPopups: false, hideFirstPartyPromo: false, collapseMode: "display", snapEffect: false, dailyTokenBudget: 5000000, disclosureAccepted: true } }));

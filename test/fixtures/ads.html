@@ -127,6 +127,9 @@
     <button aria-label="Close">×</button>
   </div>
 
+  <!-- Stripe.js injects invisible utility iframes on any page that loads it; this must NOT make the page "sensitive" -->
+  <iframe id="iframe-stripe-hidden" src="https://js.stripe.com/v3/controller-with-preconnect-abc123.html" title="Stripe utility" aria-hidden="true" style="border:0;width:0;height:0;position:absolute;left:-9999px"></iframe>
+
   <footer class="site-footer" id="footer">© Example News · <a href="/about">About</a> · <a href="/privacy">Privacy</a></footer>
 </body>
 </html>

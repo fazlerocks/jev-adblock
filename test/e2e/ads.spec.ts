@@ -74,7 +74,7 @@ test.beforeAll(async () => {
   // Intercept TypeSafe calls from every page and the service worker.
   await context.route("https://api.typesafe.ai/**", (route) => fulfilJev(route, counters));
   // Third-party iframe hosts in the fixture: serve a stub instead of hitting the network.
-  await context.route(/^https:\/\/(safeframe\.googlesyndication\.com|ads\.doubleclick\.net|www\.youtube\.com|newassets\.hcaptcha\.com|shop\.brandx\.com|betco\.example)\/.*/, (route) =>
+  await context.route(/^https:\/\/(safeframe\.googlesyndication\.com|ads\.doubleclick\.net|www\.youtube\.com|newassets\.hcaptcha\.com|js\.stripe\.com|shop\.brandx\.com|betco\.example)\/.*/, (route) =>
     route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><body></body>" }),
   );
 });
@@ -299,5 +299,34 @@ test("'keep the space blank' mode hides contents but keeps the box", async () =>
   expect(cs.display).not.toBe("none");
   expect(cs.visibility).toBe("hidden");
   expect(cs.height).toBeGreaterThan(100);
+  await page.close();
+});
+
+test("a visible payment iframe stops analysis, an invisible Stripe utility iframe does not", async () => {
+  await configure(true);
+  // The fixture already carries a hidden js.stripe.com iframe; ads are still hidden (covered by the main test).
+  const page = await context.newPage();
+  await page.goto(`${origin}/ads.html`);
+  await settle(page);
+  expect(await hiddenIds(page)).toContain("ad-sidebar");
+  // Now show a real card field and add a new ad slot: nothing may be sent.
+  counters.systemone = 0;
+  await page.evaluate(() => {
+    const f = document.createElement("iframe");
+    f.src = "https://js.stripe.com/v3/elements-inner-card-xyz.html";
+    f.style.cssText = "width:300px;height:44px;border:0";
+    document.querySelector("main")!.appendChild(f);
+  });
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => {
+    const d = document.createElement("div");
+    d.id = "late-ad-2";
+    d.className = "ad-slot";
+    d.innerHTML = '<iframe src="https://ads.doubleclick.net/late2" width="300" height="250" style="border:0"></iframe>';
+    document.querySelector("main")!.appendChild(d);
+  });
+  await page.waitForTimeout(2500);
+  expect(counters.systemone).toBe(0);
+  expect(await hiddenIds(page)).not.toContain("late-ad-2");
   await page.close();
 });

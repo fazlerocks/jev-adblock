@@ -140,13 +140,21 @@ function sameOriginFrameDocs(doc: Document): Document[] {
  * Cheap enough to run on every scan, which matters because login forms often hydrate late.
  */
 export function isSensitivePage(doc: Document): boolean {
-  const roots: ParentNode[] = [doc, ...sameOriginFrameDocs(doc)];
-  for (const d of [doc, ...sameOriginFrameDocs(doc)]) for (const h of shadowHosts(d)) roots.push(h.shadowRoot!);
+  const docs = [doc, ...sameOriginFrameDocs(doc)];
+  const roots: ParentNode[] = [...docs];
+  for (const d of docs) for (const h of shadowHosts(d)) roots.push(h.shadowRoot!);
+  // Only rendered fields and frames count. Payment libraries (Stripe.js and friends) inject invisible
+  // 0x0 utility iframes on every page they are loaded on, and many sites keep a hidden sign-in modal
+  // in the DOM; neither means the user is typing secrets. A modal that opens is caught by the next scan.
+  const rendered = (el: Element, minW: number, minH: number) => {
+    const r = el.getBoundingClientRect();
+    return r.width >= minW && r.height >= minH;
+  };
   for (const root of roots) {
-    if (root.querySelector('input[type="password"]')) return true;
+    for (const i of Array.from(root.querySelectorAll('input[type="password"]'))) if (rendered(i, 1, 1)) return true;
     for (const f of Array.from(root.querySelectorAll("iframe[src]"))) {
       const h = hostnameOf(f.getAttribute("src"));
-      if (h && hostInList(h, PAYMENT_IFRAME_HOSTS)) return true;
+      if (h && hostInList(h, PAYMENT_IFRAME_HOSTS) && rendered(f, 80, 40)) return true;
     }
   }
   return false;
