@@ -93,6 +93,16 @@ const OVERLAY_QUERY = [
   '[class*="toast" i]',
   '[class*="drawer" i]',
   '[class*="interstitial" i]',
+  // Google Funding Choices puts role="dialog" on a non-fixed child; the fixed layer is "fc-dialog-container".
+  '[class*="dialog" i]',
+  '[id*="dialog" i]',
+  // Consent banners rarely use the generic overlay words (UOL: "banner-lgpd-consent-container").
+  '[class*="consent" i]',
+  '[class*="cookie" i]',
+  '[class*="lgpd" i]',
+  '[class*="gdpr" i]',
+  '[id*="consent" i]',
+  '[id*="cookie" i]',
   '[id*="overlay" i]',
   '[id*="modal" i]',
   '[id*="popup" i]',
@@ -253,10 +263,13 @@ function scanDocument(doc: Document | Element | ShadowRoot, opts: FindOptions, o
     const st = m.style(el);
     if (st.position !== "fixed" && st.position !== "sticky") continue;
     const r = m.rect(el);
-    if (r.width < 200 || r.height < 80) continue;
+    const wide = r.width >= vp.w * 0.6;
+    const isBar = wide && (r.top <= 2 || r.top + r.height >= vp.h - 2);
+    // Wide bars are thinner than boxes: a one-line cookie bar is 50–70 px tall, and may sit
+    // above another fixed bar instead of on the edge (UOL stacks it over a floating ad).
+    if (r.width < 200 || r.height < (wide ? 48 : 80)) continue;
     const z = parseInt(st.zIndex, 10);
     const coversViewport = (r.width * r.height) / Math.max(1, vp.w * vp.h) > 0.25;
-    const isBar = r.width >= vp.w * 0.6 && (r.top <= 2 || r.top + r.height >= vp.h - 2);
     if ((Number.isFinite(z) && z >= 100) || coversViewport || isBar) add(el, "overlay");
   }
 

@@ -12,6 +12,8 @@ interface Entry {
   prevVisibility: string;
   cancelSnap?: () => void;
   finalized: boolean;
+  /** The element was a full-screen modal and hiding it released the page's scroll lock. */
+  unlockedScroll?: boolean;
   /** Set for elements hidden by a learned site rule. */
   sel?: string;
 }
@@ -20,6 +22,8 @@ export type CollapseMode = "display" | "visibility";
 
 export class Hider {
   private readonly entries = new Map<string, Entry>();
+  private scrollUnlocks = 0;
+  private savedOverflow: { el: HTMLElement; value: string; priority: string }[] = [];
   /** Called when a rule-hidden element is restored so the caller can disable that selector. */
   onRuleRestored?: (sel: string) => void;
 
@@ -62,6 +66,10 @@ export class Hider {
       if (entry.finalized || !this.entries.has(nid)) return;
       entry.finalized = true;
       entry.cancelSnap = undefined;
+      if (coversViewport(el)) {
+        entry.unlockedScroll = true;
+        this.unlockScroll();
+      }
       if (mode === "visibility") {
         el.setAttribute("data-jb-hidden", "__collapse");
         h.style.setProperty("visibility", "hidden", "important");
@@ -89,6 +97,7 @@ export class Hider {
     if (e.prevDisplay) h.style.setProperty("display", e.prevDisplay, e.prevPriority);
     h.style.removeProperty("visibility");
     if (e.prevVisibility) h.style.setProperty("visibility", e.prevVisibility);
+    if (e.unlockedScroll) this.relockScroll();
     e.el.removeAttribute("data-jb-hidden");
     e.el.removeAttribute("data-jb-id");
     e.el.setAttribute("data-jb-restored", "");
@@ -113,4 +122,29 @@ export class Hider {
   get size(): number {
     return this.entries.size;
   }
+
+  /** Modals lock scrolling with overflow:hidden on <html>/<body>; hiding only the modal would leave the page stuck. */
+  private unlockScroll(): void {
+    if (this.scrollUnlocks++ > 0) return;
+    for (const el of [document.documentElement, document.body]) {
+      if (!el || getComputedStyle(el).overflowY !== "hidden") continue;
+      this.savedOverflow.push({ el, value: el.style.getPropertyValue("overflow"), priority: el.style.getPropertyPriority("overflow") });
+      el.style.setProperty("overflow", "auto", "important");
+    }
+  }
+
+  private relockScroll(): void {
+    if (--this.scrollUnlocks > 0) return;
+    for (const s of this.savedOverflow) {
+      s.el.style.removeProperty("overflow");
+      if (s.value) s.el.style.setProperty("overflow", s.value, s.priority);
+    }
+    this.savedOverflow = [];
+  }
+}
+
+function coversViewport(el: Element): boolean {
+  if (getComputedStyle(el).position !== "fixed") return false;
+  const r = el.getBoundingClientRect();
+  return r.width * r.height >= 0.5 * window.innerWidth * window.innerHeight;
 }

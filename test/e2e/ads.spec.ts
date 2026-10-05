@@ -20,6 +20,7 @@ function mockAnswer(entry: Record<string, unknown>): { choice: string; p: number
   if (entry.rel_sponsored || /^sponsored/i.test(text)) return { choice: "sponsored_native", p: 0.9 };
   if (signals.includes("overlay") && /sponsored|betco/i.test(text)) return { choice: "sponsored_native", p: 0.88 };
   if (/deal of the day/i.test(text)) return { choice: "first_party_promo", p: 0.9 };
+  if (signals.includes("overlay") && /cookies|browse without ads/i.test(text)) return { choice: "consent_or_popup", p: 0.95 };
   return { choice: "site_content", p: 0.9 };
 }
 
@@ -90,16 +91,16 @@ async function serviceWorker() {
   return sw;
 }
 
-async function configure(withKey: boolean) {
+async function configure(withKey: boolean, hideConsentPopups = false) {
   const sw = await serviceWorker();
-  await sw.evaluate(async (withKey) => {
+  await sw.evaluate(async ([withKey, hideConsentPopups]) => {
     const settings = {
       model: "jev-latest",
       enabled: true,
       pausedHosts: [],
       neverAnalyzeHosts: [],
       thresholds: { display_ad: 0.7, sponsored_native: 0.8, consent_or_popup: 0.85 },
-      hideConsentPopups: false,
+      hideConsentPopups,
       hideFirstPartyPromo: false,
       collapseMode: "display",
       snapEffect: false,
@@ -112,7 +113,7 @@ async function configure(withKey: boolean) {
       health: { keyInvalid: false, circuitOpenUntil: 0, consecutiveFailures: 0, offline: false, keyUpdatedAt: 0, hasKey: withKey },
       ...(withKey ? { apiKey: "sk-test-key" } : {}),
     });
-  }, withKey);
+  }, [withKey, hideConsentPopups] as const);
 }
 
 async function hiddenIds(page: Page): Promise<string[]> {
@@ -142,7 +143,7 @@ test("hides ads and leaves content alone (mock Jev)", async () => {
   await settle(page);
   const hidden = await hiddenIds(page);
   expect(hidden).toEqual(expect.arrayContaining(["ad-inarticle", "sponsored-card", "ad-sidebar", "sticky-bar", "native-widget"]));
-  for (const keep of ["hero", "article", "related", "deals", "comments", "nav", "header", "footer", "video-widget", "captcha-widget", "newsletter-widget", "iframe-youtube", "iframe-captcha"]) {
+  for (const keep of ["hero", "article", "related", "deals", "comments", "nav", "header", "footer", "video-widget", "captcha-widget", "newsletter-widget", "iframe-youtube", "iframe-captcha", "cookie-bar"]) {
     expect(hidden, `${keep} must stay visible`).not.toContain(keep);
   }
   expect(counters.systemone).toBeGreaterThan(0);
@@ -328,5 +329,30 @@ test("a visible payment iframe stops analysis, an invisible Stripe utility ifram
   await page.waitForTimeout(2500);
   expect(counters.systemone).toBe(0);
   expect(await hiddenIds(page)).not.toContain("late-ad-2");
+  await page.close();
+});
+
+test("with consent hiding on, a thin consent bar and a late full-screen modal are hidden and scrolling comes back", async () => {
+  await configure(true, true);
+  const page = await context.newPage();
+  await page.goto(`${origin}/ads.html`);
+  await settle(page);
+  // Google Funding Choices' ad-block recovery message: the fixed layer has no overlay word in its class,
+  // role="dialog" sits on a non-fixed child, and the page is scroll-locked while it is open.
+  await page.evaluate(() => {
+    const root = document.createElement("div");
+    root.className = "fc-ab-root";
+    root.innerHTML =
+      '<div class="fc-dialog-container" style="position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center">' +
+      '<div class="fc-dialog-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.5)"></div>' +
+      '<div class="fc-ab-dialog fc-dialog" role="dialog" style="position:relative;width:480px;padding:24px;background:#fff">' +
+      "<h1>Want to browse without ads?</h1><p>Subscribers browse ad-free.</p><button>No, allow ads</button><button>Subscribe</button></div></div>";
+    document.body.append(root);
+    document.body.style.overflow = "hidden";
+  });
+  await settle(page);
+  const hidden = await hiddenIds(page);
+  expect(hidden).toEqual(expect.arrayContaining(["cookie-bar", "fc-dialog-container"]));
+  expect(await page.evaluate(() => getComputedStyle(document.body).overflowY)).not.toBe("hidden");
   await page.close();
 });

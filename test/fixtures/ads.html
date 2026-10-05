@@ -17,6 +17,7 @@
     .deals-carousel { height: 320px; background: #eef; display: flex; align-items: center; justify-content: center; }
     aside .widget { margin-bottom: 24px; }
     .sticky-promo-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 90px; background: #222; color: #fff; display: flex; align-items: center; justify-content: center; gap: 16px; z-index: 1000; }
+    .cookie-consent-container { position: fixed; bottom: 90px; left: 0; right: 0; height: 60px; background: #333; color: #fff; display: flex; align-items: center; justify-content: center; gap: 16px; z-index: 29999999; }
     footer.site-footer { height: 120px; background: #f4f4f4; margin-top: 200px; padding: 24px; }
     #comments .comment { border-top: 1px solid #eee; padding: 8px 0; }
   </style>
@@ -125,6 +126,13 @@
     <span>Try BetCo today — 50 free spins.</span>
     <a href="https://betco.example/join" rel="sponsored">Join now</a>
     <button aria-label="Close">×</button>
+  </div>
+
+  <!-- consent bar: 60 px tall, stacked above the sticky bar instead of on the edge, no overlay word in its class.
+       Visible by default; hidden only with "Hide consent and popup overlays" on -->
+  <div class="cookie-consent-container" id="cookie-bar">
+    <span>We use cookies to improve your experience. By continuing you agree to our cookie policy.</span>
+    <button>OK</button>
   </div>
 
   <!-- Stripe.js injects invisible utility iframes on any page that loads it; this must NOT make the page "sensitive" -->
