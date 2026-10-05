@@ -330,3 +330,26 @@ test("a visible payment iframe stops analysis, an invisible Stripe utility ifram
   expect(await hiddenIds(page)).not.toContain("late-ad-2");
   await page.close();
 });
+
+// Keep last: reloading the extension replaces the service worker for every later test.
+test("a script orphaned by an extension reload stays quiet", async () => {
+  await configure(true);
+  const page = await context.newPage();
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto(`${origin}/ads.html`);
+  await settle(page);
+  const sw = await serviceWorker();
+  await sw.evaluate(() => chrome.runtime.reload()).catch(() => undefined);
+  await page.waitForTimeout(1000);
+  // A late ad makes the orphaned observer scan and try to reach the worker.
+  await page.evaluate(() => {
+    const d = document.createElement("div");
+    d.innerHTML = '<iframe src="https://ads.doubleclick.net/late3" width="300" height="250" style="border:0"></iframe>';
+    document.querySelector("article")!.append(d);
+  });
+  await settle(page);
+  expect(errors).toEqual([]);
+  await page.close();
+});
+

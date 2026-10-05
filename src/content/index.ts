@@ -217,6 +217,16 @@ async function main(): Promise<void> {
   });
 }
 
+/**
+ * After the extension is reloaded or updated, scripts already running in open tabs are orphaned:
+ * `chrome.runtime.id` goes away and `sendMessage` throws synchronously ("Extension context invalidated"),
+ * which the callers' `.catch()` never sees. Turn that into a rejection so the page stays quiet.
+ */
 function send(msg: ContentToBackground): Promise<unknown> {
-  return chrome.runtime.sendMessage<ContentToBackground, unknown>(msg);
+  if (!chrome.runtime?.id) return Promise.reject(new Error("extension context invalidated"));
+  try {
+    return chrome.runtime.sendMessage<ContentToBackground, unknown>(msg);
+  } catch (e) {
+    return Promise.reject(e);
+  }
 }
