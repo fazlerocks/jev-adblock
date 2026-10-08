@@ -1,0 +1,9 @@
+[
+  {
+    "url": "https://canyoublockit.com/testing/",
+    "ads": ["iframe[src*='doubleclick'], iframe[src*='googlesyndication']"],
+    "keep": ["h1"],
+    "waitMs": 15000,
+    "timeoutMs": 60000
+  }
+]

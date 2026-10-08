@@ -120,12 +120,28 @@ function matchesIab(w: number, h: number): boolean {
   return IAB_SIZES.some(([iw, ih]) => Math.abs(w - iw) <= IAB_TOLERANCE && Math.abs(h - ih) <= IAB_TOLERANCE);
 }
 
+/** Avoid probing known cross-origin frames: Safari logs the denial even when it is caught. */
+function readableFrameDocument(frame: HTMLIFrameElement, doc: Document): Document | null {
+  try {
+    if (frame.hasAttribute("sandbox") && !frame.sandbox.contains("allow-same-origin")) return null;
+    const src = frame.getAttribute("src");
+    if (!frame.hasAttribute("srcdoc") && src) {
+      const url = new URL(src, doc.baseURI);
+      if (url.href !== "about:blank" && url.origin !== doc.location.origin) return null;
+    }
+    // Redirects can still change the origin, so retain the browser's access check.
+    return frame.contentDocument;
+  } catch {
+    return null;
+  }
+}
+
 /** Same-origin iframe documents we are allowed to look into (one level). */
 function sameOriginFrameDocs(doc: Document): Document[] {
   const out: Document[] = [];
   for (const f of Array.from(doc.querySelectorAll("iframe"))) {
     try {
-      const d = (f as HTMLIFrameElement).contentDocument;
+      const d = readableFrameDocument(f as HTMLIFrameElement, doc);
       if (d?.body) out.push(d);
     } catch {
       /* cross-origin */
@@ -307,12 +323,7 @@ export function findCandidates(doc: Document, opts: FindOptions): Found[] {
   // Same-origin iframes, one level deep.
   if ((opts.depth ?? 0) < 1) {
     for (const f of Array.from(doc.querySelectorAll("iframe"))) {
-      let inner: Document | null = null;
-      try {
-        inner = (f as HTMLIFrameElement).contentDocument;
-      } catch {
-        inner = null;
-      }
+      const inner = readableFrameDocument(f as HTMLIFrameElement, doc);
       if (inner && inner.body && inner.body.childElementCount > 0) scanDocument(inner, { ...opts, depth: 1 }, raw, inner);
     }
   }
