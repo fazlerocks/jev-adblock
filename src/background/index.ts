@@ -5,7 +5,12 @@ import { handleMessage } from "./router";
 import { getApiKey, patchHealth } from "./settings";
 import { dropTab } from "./tabState";
 
+console.info("[jev-adblock] background started");
+
 chrome.runtime.onMessage.addListener((msg: AnyMessage, sender, sendResponse) => {
+  if (msg?.type === "page_start" || msg?.type === "get_status" || msg?.type === "classify") {
+    console.info("[jev-adblock] background received", { type: msg.type, tabId: sender.tab?.id, sameExtension: sender.id === chrome.runtime.id });
+  }
   handleMessage(msg, sender)
     .then((r) => sendResponse(r))
     .catch((e) => {

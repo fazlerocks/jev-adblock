@@ -12,13 +12,14 @@ import { loadSiteRules, readGate, rulesAllowed, SiteRuleStyles } from "./siteRul
 const FLAG = "__jevAdblockLoaded";
 if (!(window as unknown as Record<string, boolean>)[FLAG]) {
   (window as unknown as Record<string, boolean>)[FLAG] = true;
-  void main();
+  void main().catch((error) => console.error("[jev-adblock] content initialization failed", error instanceof Error ? error.name : "unknown error"));
 }
 
 async function main(): Promise<void> {
   if (window.top !== window) return; // top frame only; same-origin frames are reached from the parent
   const host = location.hostname;
   if (!host) return;
+  console.warn("[jev-adblock] diagnostics active: content script started", { host, readyState: document.readyState });
 
   const hider = new Hider();
   const seen = new WeakSet<Element>();
@@ -58,7 +59,9 @@ async function main(): Promise<void> {
     try {
       const r = (await send({ type: "get_status" })) as StatusResponse | undefined;
       status = r?.status ?? "disabled";
-    } catch {
+      console.info("[jev-adblock] scan status", { status, receivedResponse: !!r });
+    } catch (error) {
+      console.warn("[jev-adblock] status request failed", error instanceof Error ? error.name : "unknown error");
       status = "disabled";
     }
     return status;
@@ -85,8 +88,10 @@ async function main(): Promise<void> {
     const batch = queue;
     queue = [];
     batches++;
+    console.info("[jev-adblock] classification started", { candidates: batch.length, batch: batches });
     try {
       const res = await classify(batch.map((b) => b.c));
+      console.info("[jev-adblock] classification finished", { verdicts: res.verdicts.length, hide: res.verdicts.filter((v) => v.hide).length, error: res.error ?? null });
       if (res.error) status = res.error;
       // A page may have become sensitive while the request was in flight; if so, do not act on the answer.
       if (sensitive) return;
@@ -96,7 +101,7 @@ async function main(): Promise<void> {
         hider.hide(v.nid, item.el, v.fp, v.label, summarise(item.c), v.source, collapseMode, snapEffect);
       }
     } catch (e) {
-      console.debug("[jev-adblock] classify failed", e);
+      console.warn("[jev-adblock] classification failed", e instanceof Error ? e.name : "unknown error");
     } finally {
       report();
     }
@@ -106,7 +111,10 @@ async function main(): Promise<void> {
   const classify = (candidates: Candidate[]): Promise<ClassifyResponse> => {
     const page = { title: document.title, lang: document.documentElement.lang || undefined };
     return Promise.race<ClassifyResponse>([
-      (send({ type: "classify", candidates, page }) as Promise<ClassifyResponse | undefined>).then((r) => r ?? { verdicts: [] }),
+      (send({ type: "classify", candidates, page }) as Promise<ClassifyResponse | undefined>).then((r) => {
+        if (!r) console.warn("[jev-adblock] classification received no background response");
+        return r ?? { verdicts: [] };
+      }),
       new Promise<ClassifyResponse>((_, rej) => setTimeout(() => rej(new Error("classify timed out")), CLASSIFY_TIMEOUT_MS)),
     ]);
   };
@@ -128,6 +136,7 @@ async function main(): Promise<void> {
     // Privacy gate first, every time: forms hydrate late and modals open on click.
     if (isSensitivePage(document)) {
       if (!sensitive) {
+        console.info("[jev-adblock] scanning stopped: sensitive page (password field or payment iframe)");
         sensitive = true;
         queue = [];
         ruleStyles.clear();
@@ -146,6 +155,7 @@ async function main(): Promise<void> {
       limit: MAX_CANDIDATES_PER_PAGE - pageCount,
       onShadowRoot: (root) => observer.watchShadowRoot(root),
     });
+    if (found.length || pageCount === 0) console.info("[jev-adblock] scan completed", { candidates: found.length, previouslyAnalysed: pageCount });
     for (const f of found) {
       seen.add(f.el);
       pageCount++;

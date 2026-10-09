@@ -2,13 +2,13 @@ import { chromium, expect, test, type BrowserContext, type Page, type Route } fr
 import { createServer, type Server } from "node:http";
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { mkdtempSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const DIST = join(__dirname, "../../dist");
+const DIST = process.env.EXTENSION_DIST ? resolve(process.env.EXTENSION_DIST) : join(__dirname, "../../dist");
 const FIXTURE = readFileSync(join(__dirname, "../fixtures/ads.html"), "utf8");
 
 // The mock classifier decides purely from the descriptor Jev would see.

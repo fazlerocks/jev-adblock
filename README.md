@@ -5,7 +5,7 @@
 <h1 align="center">Jev Ad Blocker</h1>
 
 <p align="center">
-  <strong>An open-source AI ad blocker for Chrome, built on TypeSafe AI's Jev model.</strong> No filter lists. Jev looks at each suspicious element and decides.<br />
+  <strong>An open-source AI ad blocker for Safari and Chrome, built on TypeSafe AI's Jev model.</strong> No filter lists. Jev looks at each suspicious element and decides.<br />
   Bring your own <a href="https://typesafe.ai">TypeSafe AI</a> key. Everything else runs in your browser.
 </p>
 
@@ -26,6 +26,77 @@ Jev Ad Blocker is a free, open-source Chrome extension (Manifest V3) that blocks
 It is also a complete, working example of what you can build with Jev: one Choice question per element, batched into a single request, with code owning every threshold. If you are evaluating Jev for classification, routing or moderation, the request builder in [`src/shared/jev/questions.ts`](src/shared/jev/questions.ts) and the decision logic in [`src/background/decisions.ts`](src/background/decisions.ts) are the two files to read.
 
 ---
+
+## Install in Safari
+
+Safari 16.4 or later is required because tab state uses `storage.session`.
+On a Mac with Xcode installed:
+
+```sh
+npm ci
+npm run safari:convert
+```
+
+If `xcrun` cannot find the packaging tool, install the full Xcode app (the
+standalone Command Line Tools package is insufficient), launch it to complete
+setup, and select it for this command:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer npm run safari:convert
+```
+
+Adjust the path for your Xcode installation. `DEVELOPER_DIR` takes precedence
+over `xcode-select`; this command does not change the system-wide selection.
+
+This builds `dist-safari/` and generates the macOS containing app and Safari Web
+Extension project in `safari-build/` using Apple's web extension converter. Open
+the generated Xcode project, select your development team for both targets, and
+run the app. Enable Jev Ad Blocker in Safari Settings → Extensions, allow access
+to the sites you want to filter, and open the extension settings to accept the
+disclosure and save your TypeSafe API key. For local unsigned development, enable
+Safari's developer features and Allow Unsigned Extensions. The converter accepts
+extra options after `npm run safari:convert --`; use its bundle identifier option
+to override the development default if needed.
+
+After editing extension code, run `npm run build:safari` and rebuild in Xcode.
+The generated project references `dist-safari/` directly by default. Generated projects are
+ignored. Chrome remains available via `npm run build` and its existing installation
+instructions.
+
+### Verify ad blocking
+
+```sh
+npx playwright install chromium
+npm run e2e:safari-bundle
+JEV_API_KEY=your-key npm run verify:ads
+# Supply your own sites and selectors:
+JEV_API_KEY=your-key npm run verify:ads -- /absolute/path/sites.json
+```
+
+The deterministic suite loads the Safari-targeted JavaScript as a real Chromium
+extension and mocks Jev responses. It checks ad removal, retained content, cache
+behavior, and safety gates. It does not exercise Safari's extension APIs.
+
+The live runner uses a disposable Chromium profile with the Safari bundle and
+your real Jev key. It sends page descriptors to TypeSafe and consumes API tokens.
+`test/sites/pihole.json` starts with a visual ad test used by the Pi-hole community;
+edit its `ads` and `keep` CSS selectors for current pages, or provide another JSON
+array with `url`, `ads`, `keep`, optional `waitMs` and `timeoutMs`. Set `HEADED=1`
+to watch. Reports and before/after screenshots are saved to `test-results/live-ads/`.
+
+Each site must first show visible ads with Jev disabled, then hide every selected
+ad with Jev's `data-jb-hidden` marker while preserving selected content. Missing
+ads, stale selectors, blocked DNS, navigation failures, and timeouts fail the run
+instead of producing a false success. Pi-hole DNS test percentages measure a
+different behavior: this extension hides DOM elements after Jev classifies them.
+Use the same DNS configuration for comparisons and ensure baseline ads can load.
+
+For manual Safari testing, visit the same configured URLs with the extension off
+and on, verify the popup reports hidden ads, restore an ad, pause the site, reload,
+and confirm ordinary article/navigation content stays visible. Also check that a
+missing key leaves pages unchanged and that saving a key activates scanning.
+Actual Xcode packaging and Safari runtime testing require macOS and are not
+covered by the Chromium suite.
 
 ## Why
 

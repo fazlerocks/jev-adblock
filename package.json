@@ -7,6 +7,10 @@
   "scripts": {
     "dev": "node esbuild.config.mjs --watch",
     "build": "node esbuild.config.mjs",
+    "build:safari": "node esbuild.config.mjs --safari",
+    "safari:convert": "npm run build:safari && node scripts/convert-safari.mjs",
+    "verify:ads": "npm run build:safari && node scripts/verify-ads.mjs",
+    "e2e:safari-bundle": "npm run build:safari && EXTENSION_DIST=dist-safari playwright test",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

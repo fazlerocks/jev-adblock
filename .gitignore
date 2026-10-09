@@ -1,5 +1,7 @@
 node_modules/
 dist/
+dist-safari/
+safari-build/
 test-results/
 playwright-report/
 .DS_Store

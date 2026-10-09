@@ -101,6 +101,7 @@ async function runPool<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T
 export async function classifyCandidates(host: string, page: PageContext, candidates: Candidate[]): Promise<ClassifyResponse> {
   const snap = await snapshot();
   const status = statusFor(host, snap);
+  console.info("[jev-adblock] classification gate", { status, candidates: candidates.length });
   if (status !== "ok") return { verdicts: [], error: status };
 
   const [overrides, cache] = await Promise.all([getOverrides(), getHostCache(host)]);
@@ -131,6 +132,7 @@ export async function classifyCandidates(host: string, page: PageContext, candid
   }
 
   const uniques = Array.from(byFp.values()).map((l) => l[0]!);
+  console.info("[jev-adblock] classification cache", { reused: verdicts.length, uncached: uniques.length });
   let error: ErrorCode | undefined;
   let inputTokens = 0;
 
@@ -144,6 +146,7 @@ export async function classifyCandidates(host: string, page: PageContext, candid
       const req = buildRequest(snap.settings.model, page, batch);
       try {
         const res = await client.systemOne(req);
+        console.info("[jev-adblock] Jev response", { answers: Object.keys(res.answers).length, inputTokens: res.usage?.input_tokens ?? 0 });
         await recordSuccess();
         inputTokens += res.usage?.input_tokens ?? 0;
         await addUsage(res.usage?.input_tokens ?? 0);
@@ -158,6 +161,7 @@ export async function classifyCandidates(host: string, page: PageContext, candid
           }
         });
       } catch (e) {
+        console.warn("[jev-adblock] Jev request failed", { kind: e instanceof JevError ? e.kind : "unexpected", status: e instanceof JevError ? e.status : undefined });
         if (e instanceof JevError) error = await recordFailure(e);
         else {
           console.error("[jev-adblock] unexpected error", e);
